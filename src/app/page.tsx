@@ -1,63 +1,289 @@
-import Image from "next/image";
+'use client';
+
+import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Book } from '@/types';
+import { loadBooks, saveBooks, calculateBookBalance, calculateTotalBalance, formatCurrency, formatDate } from '@/utils/storage';
 
 export default function Home() {
+  const [books, setBooks] = useState<Book[]>([]);
+  const [newBookName, setNewBookName] = useState('');
+  const [isFixedBook, setIsFixedBook] = useState(false);
+  const [isAdding, setIsAdding] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Date Filter State
+  const [selectedDate, setSelectedDate] = useState('');
+
+  // Menu State
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+
+  useEffect(() => {
+    const loadedBooks = loadBooks();
+    setBooks(loadedBooks);
+    setIsLoaded(true);
+  }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpenId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  const handleAddBook = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBookName.trim()) return;
+
+    const newBook: Book = {
+      id: crypto.randomUUID(),
+      name: newBookName,
+      type: isFixedBook ? 'fixed' : 'normal',
+      transactions: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    const updatedBooks = [...books, newBook];
+    setBooks(updatedBooks);
+    saveBooks(updatedBooks);
+    setNewBookName('');
+    setIsFixedBook(false);
+    setIsAdding(false);
+  };
+
+  const handleEditBook = (e: React.FormEvent, bookId: string) => {
+    e.preventDefault();
+    if (!editName.trim()) return;
+
+    const updatedBooks = books.map(book =>
+      book.id === bookId ? { ...book, name: editName } : book
+    );
+    setBooks(updatedBooks);
+    saveBooks(updatedBooks);
+    setEditingId(null);
+    setMenuOpenId(null);
+  };
+
+  const startEditing = (book: Book) => {
+    setEditingId(book.id);
+    setEditName(book.name);
+    setMenuOpenId(null);
+  };
+
+  const deleteBook = (bookId: string) => {
+    if (confirm('Are you sure you want to delete this book? All data will be lost.')) {
+      const updatedBooks = books.filter(b => b.id !== bookId);
+      setBooks(updatedBooks);
+      saveBooks(updatedBooks);
+    }
+    setMenuOpenId(null);
+  }
+
+  const toggleMenu = (e: React.MouseEvent, bookId: string) => {
+    e.stopPropagation();
+    setMenuOpenId(menuOpenId === bookId ? null : bookId);
+  };
+
+  if (!isLoaded) return null;
+
+  const totalBalance = calculateTotalBalance(books, selectedDate);
+
+  // Sort books: Fixed first, then by creation (or kept in order)
+  const sortedBooks = [...books].sort((a, b) => {
+    if (a.type === 'fixed' && b.type !== 'fixed') return -1;
+    if (a.type !== 'fixed' && b.type === 'fixed') return 1;
+    return 0;
+  });
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div className="min-h-screen bg-[#0f0f13] text-white font-sans selection:bg-purple-500/30">
+      {/* Background Gradients */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-purple-900/20 blur-[120px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-blue-900/20 blur-[120px]" />
+      </div>
+
+      <main className="relative z-10 max-w-lg mx-auto p-6 flex flex-col gap-6 min-h-screen">
+        <header className="flex flex-col items-center pt-8 pb-4 gap-4">
+          <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400 tracking-tight">
+            CashBook
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+
+          {/* Global Date Filter */}
+          <div className="relative">
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white/80 text-sm focus:outline-none focus:border-white/30"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {selectedDate && (
+              <button
+                onClick={() => setSelectedDate('')}
+                className="absolute -right-8 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </header>
+
+        {/* Total Balance Card */}
+        <div className="relative group">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-500" />
+          <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-center shadow-xl">
+            <h2 className="text-white/60 text-sm font-medium uppercase tracking-wider mb-1">
+              {selectedDate ? `Net Balance (${formatDate(selectedDate)})` : 'Net Balance'}
+            </h2>
+            <div className={`text-4xl font-bold tracking-tighter ${totalBalance >= 0 ? 'text-white' : 'text-red-400'}`}>
+              {formatCurrency(totalBalance)}
+            </div>
+          </div>
+        </div>
+
+        {/* Books List */}
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-between items-center px-1">
+            <h3 className="text-xl font-semibold text-white/80">Your Books</h3>
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setIsFixedBook(true); setIsAdding(true); }}
+                className="text-xs bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 px-3 py-1.5 rounded-lg transition-colors border border-indigo-500/20"
+              >
+                + Fix Book
+              </button>
+              <button
+                onClick={() => { setIsFixedBook(false); setIsAdding(true); }}
+                className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors border border-white/5"
+              >
+                + New Book
+              </button>
+            </div>
+          </div>
+
+          {isAdding && (
+            <form onSubmit={handleAddBook} className="bg-white/5 border border-white/10 p-4 rounded-xl flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+              <div className="flex justify-between items-center">
+                <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
+                  {isFixedBook ? 'Adding Fixed Book' : 'Adding Normal Book'}
+                </span>
+                <button type="button" onClick={() => setIsAdding(false)} className="text-white/40 hover:text-white">✕</button>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Book Name (e.g. Wallet, Bank)"
+                  className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-white/30"
+                  value={newBookName}
+                  onChange={(e) => setNewBookName(e.target.value)}
+                />
+                <button type="submit" className="bg-white text-black font-semibold px-4 rounded-lg hover:bg-gray-200 transition-colors">
+                  Add
+                </button>
+              </div>
+            </form>
+          )}
+
+          <div className="flex flex-col gap-3">
+            {sortedBooks.length === 0 ? (
+              <div className="text-center py-12 text-white/20 italic bg-white/5 rounded-xl border border-white/5 border-dashed">
+                No books yet. Create one to start tracking.
+              </div>
+            ) : (
+              sortedBooks.map(book => {
+                const balance = calculateBookBalance(book, selectedDate);
+                const isEditing = editingId === book.id;
+
+                return (
+                  <div
+                    key={book.id}
+                    className={`group relative flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/5 hover:border-white/10 rounded-xl transition-all active:scale-[0.98] ${menuOpenId === book.id ? 'z-50' : 'z-0'}`}
+                    onClick={() => !isEditing && router.push(`/book/${book.id}${selectedDate ? `?date=${selectedDate}` : ''}`)}
+                  >
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center border border-white/5 text-white/60">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                      </div>
+
+                      {isEditing ? (
+                        <form onSubmit={(e) => handleEditBook(e, book.id)} onClick={(e) => e.stopPropagation()} className="flex gap-2 w-full pr-4">
+                          <input
+                            autoFocus
+                            type="text"
+                            className="bg-black/40 border border-white/20 rounded px-2 py-1 text-white flex-1"
+                            value={editName}
+                            onChange={(e) => setEditName(e.target.value)}
+                          />
+                          <button type="submit" className="text-xs bg-emerald-500/20 text-emerald-400 px-2 rounded">Save</button>
+                          <button type="button" onClick={() => setEditingId(null)} className="text-xs bg-white/10 px-2 rounded">Cancel</button>
+                        </form>
+                      ) : (
+                        <div>
+                          <h4 className="font-semibold text-white/90 flex items-center gap-2">
+                            {book.name}
+                            {book.type === 'fixed' && (
+                              <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded uppercase tracking-wider border border-indigo-500/10">Fixed</span>
+                            )}
+                          </h4>
+                          <p className="text-xs text-white/40">{book.transactions.length} entries</p>
+                        </div>
+                      )}
+                    </div>
+
+                    {!isEditing && (
+                      <div className="flex items-center gap-4">
+                        <div className={`font-mono font-bold ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {formatCurrency(balance)}
+                        </div>
+
+                        <div className="relative">
+                          <button
+                            onClick={(e) => toggleMenu(e, book.id)}
+                            className="p-1 text-white/40 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                          </button>
+
+                          {menuOpenId === book.id && (
+                            <div
+                              ref={menuRef}
+                              className="absolute right-0 top-8 w-32 bg-[#1a1a1f] border border-white/10 rounded-lg shadow-xl z-50 overflow-hidden"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <button
+                                onClick={() => startEditing(book)}
+                                className="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+                              >
+                                Edit Name
+                              </button>
+                              <button
+                                onClick={() => deleteBook(book.id)}
+                                className="w-full text-left px-4 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
         </div>
       </main>
     </div>
