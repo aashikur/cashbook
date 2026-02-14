@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { Book, Transaction } from '@/types';
 import { loadBooks, saveBooks, calculateBookBalance, formatCurrency, formatDate } from '@/utils/storage';
 import TransactionModal from '@/components/TransactionModal';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function BookDetails() {
     const { id } = useParams();
@@ -141,7 +142,7 @@ export default function BookDetails() {
         return transactionMenuOpenId === tId ? 'z-50' : 'z-0';
     };
 
-    if (!isLoaded || !book) return null;
+    if (!isLoaded || !book) return <LoadingScreen />;
 
     const balance = calculateBookBalance(book, selectedDate);
 

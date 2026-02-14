@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Book, Transaction } from '@/types';
 import { loadBooks, saveBooks, calculateBookBalance, calculateTotalBalance, formatCurrency, formatDate } from '@/utils/storage';
 import TransactionModal from '@/components/TransactionModal';
+import LoadingScreen from '@/components/LoadingScreen';
 
 export default function Home() {
   const [books, setBooks] = useState<Book[]>([]);
@@ -147,7 +148,7 @@ export default function Home() {
 
   const activeBook = activeBookId ? books.find(b => b.id === activeBookId) : null;
 
-  if (!isLoaded) return null;
+  if (!isLoaded) return <LoadingScreen />;
 
   const totalBalance = calculateTotalBalance(books, selectedDate);
 
