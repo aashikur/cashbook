@@ -1,9 +1,8 @@
-'use client';
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Book, Transaction } from '@/types';
 import { loadBooks, saveBooks, calculateBookBalance, formatCurrency, formatDate } from '@/utils/storage';
+import TransactionModal from '@/components/TransactionModal';
 
 export default function BookDetails() {
     const { id } = useParams();
@@ -18,8 +17,6 @@ export default function BookDetails() {
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
-    const [amount, setAmount] = useState('');
-    const [description, setDescription] = useState('');
 
     // Menu & Edit State for Transactions
     const [transactionMenuOpenId, setTransactionMenuOpenId] = useState<string | null>(null);
@@ -64,22 +61,26 @@ export default function BookDetails() {
 
     const openModal = (type: 'income' | 'expense') => {
         setTransactionType(type);
-        setAmount('');
-        setDescription('');
         setIsModalOpen(true);
     };
 
-    const handleAddTransaction = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!book || !amount || !description) return;
+    const handleAddTransaction = (amount: number, description: string) => {
+        if (!book) return;
 
         const newTransaction: Transaction = {
             id: crypto.randomUUID(),
-            amount: parseFloat(amount),
+            amount: amount,
             description,
             // For fixed books, we can just treat everything as 'income' for simplicity or 'fixed'
             type: book.type === 'fixed' ? 'income' : transactionType,
-            date: selectedDate ? new Date(selectedDate).toISOString() : new Date().toISOString(),
+            date: selectedDate
+                ? (() => {
+                    const d = new Date();
+                    const [year, month, day] = selectedDate.split('-').map(Number);
+                    d.setFullYear(year, month - 1, day);
+                    return d.toISOString();
+                })()
+                : new Date().toISOString(),
         };
 
         const updatedTransactions = [newTransaction, ...book.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -90,7 +91,8 @@ export default function BookDetails() {
         setBooks(updatedBooks);
         setBook(updatedBook);
         saveBooks(updatedBooks);
-        setIsModalOpen(false);
+        // Modal closing handled by parent/props usually, but component calls on submit? 
+        // Component calls onSubmit then onClose. So logic is fine.
     };
 
     const deleteTransaction = (transactionId: string) => {
@@ -334,67 +336,127 @@ export default function BookDetails() {
                 </div>
             </main>
 
-            {/* Modal */}
-            {isModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-[#1a1a1f] border border-white/10 p-6 rounded-2xl shadow-2xl w-full max-w-md animate-in zoom-in-95 duration-200">
-                        <h2 className="text-xl font-bold mb-6 text-center">
-                            {book.type === 'fixed' ? (
-                                <span className="text-indigo-400">Update Balance</span>
-                            ) : (
-                                transactionType === 'income' ? (
-                                    <span className="text-emerald-400">Add Income</span>
-                                ) : (
-                                    <span className="text-rose-400">Add Expense</span>
-                                )
-                            )}
-                        </h2>
-
-                        <form onSubmit={handleAddTransaction} className="flex flex-col gap-4">
-                            <div className="relative">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">$</span>
-                                <input
-                                    type="number"
-                                    placeholder={book.type === 'fixed' ? "New Balance" : "0.00"}
-                                    autoFocus
-                                    value={amount}
-                                    onChange={(e) => setAmount(e.target.value)}
-                                    className="w-full bg-black/20 border border-white/5 rounded-xl px-4 pl-8 py-4 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all text-2xl font-bold"
-                                    required
-                                />
-                            </div>
-
-                            <input
-                                type="text"
-                                placeholder="Description (e.g. Salary, Rent)"
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                className="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-white placeholder:text-white/20 focus:outline-none focus:ring-2 focus:ring-white/10 transition-all"
-                                required
-                            />
-
-                            <div className="flex gap-3 mt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsModalOpen(false)}
-                                    className="flex-1 py-3 text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-all font-medium"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    type="submit"
-                                    className={`flex-1 py-3 font-bold text-black rounded-xl hover:opacity-90 transition-all shadow-lg ${book.type === 'fixed'
-                                        ? 'bg-indigo-400 shadow-indigo-500/20'
-                                        : (transactionType === 'income' ? 'bg-emerald-400 shadow-emerald-500/20' : 'bg-rose-400 shadow-rose-500/20')
-                                        }`}
-                                >
-                                    Save
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
+            <TransactionModal
+                isOpen={isModalOpen}
+                onClose={() => setIsModalOpen(false)}
+                onSubmit={handleAddTransaction}
+                type={transactionType}
+                bookType={book.type}
+            />
         </div>
+    );
+}
+import { useParams, useRouter } from 'next/navigation';
+import { Book, Transaction } from '@/types';
+import { loadBooks, saveBooks, calculateBookBalance, formatCurrency, formatDate } from '@/utils/storage';
+
+export default function BookDetails() {
+    const { id } = useParams();
+    const router = useRouter();
+    const [book, setBook] = useState<Book | null>(null);
+    const [books, setBooks] = useState<Book[]>([]);
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    // Date Filter State
+    const [selectedDate, setSelectedDate] = useState('');
+
+    // Modal State
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
+    const [amount, setAmount] = useState('');
+    const [description, setDescription] = useState('');
+
+    // Menu & Edit State for Transactions
+    const [transactionMenuOpenId, setTransactionMenuOpenId] = useState<string | null>(null);
+    const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
+    const [editDescription, setEditDescription] = useState('');
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const loadedBooks = loadBooks();
+        setBooks(loadedBooks);
+        const foundBook = loadedBooks.find((b: Book) => b.id === id);
+        if (!foundBook && isLoaded) {
+            router.push('/');
+        } else {
+            setBook(foundBook || null);
+        }
+
+        // Initialize Date Filter from URL
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const dateParam = params.get('date');
+            if (dateParam) {
+                setSelectedDate(dateParam);
+            }
+        }
+
+        setIsLoaded(true);
+    }, [id, router]);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setTransactionMenuOpenId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
+    const openModal = (type: 'income' | 'expense') => {
+        setTransactionType(type);
+        setAmount('');
+        setDescription('');
+        setIsModalOpen(true);
+    };
+
+    import TransactionModal from '@/components/TransactionModal';
+
+    // ... (inside component)
+
+    const handleAddTransaction = (amount: number, description: string) => {
+        if (!book) return;
+
+        const newTransaction: Transaction = {
+            id: crypto.randomUUID(),
+            amount: amount,
+            description,
+            // For fixed books, we can just treat everything as 'income' for simplicity or 'fixed'
+            type: book.type === 'fixed' ? 'income' : transactionType,
+            date: selectedDate
+                ? (() => {
+                    const d = new Date();
+                    const [year, month, day] = selectedDate.split('-').map(Number);
+                    d.setFullYear(year, month - 1, day);
+                    return d.toISOString();
+                })()
+                : new Date().toISOString(),
+        };
+
+        const updatedTransactions = [newTransaction, ...book.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const updatedBook = { ...book, transactions: updatedTransactions };
+
+        const updatedBooks = books.map(b => b.id === book.id ? updatedBook : b);
+
+        setBooks(updatedBooks);
+        setBook(updatedBook);
+        saveBooks(updatedBooks);
+        // Modal closing is handled by the component's onSubmit prop or separate onClose
+    };
+
+    // ...
+
+    <TransactionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleAddTransaction}
+        type={transactionType}
+        bookType={book.type}
+    />
+        </div >
     );
 }
