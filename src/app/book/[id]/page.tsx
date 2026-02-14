@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Book, Transaction } from '@/types';
@@ -91,8 +93,6 @@ export default function BookDetails() {
         setBooks(updatedBooks);
         setBook(updatedBook);
         saveBooks(updatedBooks);
-        // Modal closing handled by parent/props usually, but component calls on submit? 
-        // Component calls onSubmit then onClose. So logic is fine.
     };
 
     const deleteTransaction = (transactionId: string) => {
@@ -170,7 +170,7 @@ export default function BookDetails() {
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
                         </button>
-                        <h1 className="text-2xl font-bold flex items-center gap-2">
+                        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                             {book.name}
                             {book.type === 'fixed' && <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded border border-indigo-500/20">FIXED</span>}
                         </h1>
@@ -199,10 +199,10 @@ export default function BookDetails() {
                 <div className="relative group">
                     <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-500" />
                     <div className="relative bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 text-center shadow-xl">
-                        <h2 className="text-white/60 text-sm font-medium uppercase tracking-wider mb-1">
+                        <h2 className="text-white/60 text-xs sm:text-sm font-medium uppercase tracking-wider mb-1">
                             {selectedDate ? `Net Balance (${formatDate(selectedDate)})` : 'Net Balance'}
                         </h2>
-                        <div className={`text-5xl font-bold tracking-tighter ${balance >= 0 ? 'text-white' : 'text-red-400'}`}>
+                        <div className={`text-4xl sm:text-5xl font-bold tracking-tighter ${balance >= 0 ? 'text-white' : 'text-red-400'}`}>
                             {formatCurrency(balance)}
                         </div>
                     </div>
@@ -284,15 +284,15 @@ export default function BookDetails() {
                                                 </form>
                                             ) : (
                                                 <>
-                                                    <span className="font-medium text-white/90 text-lg">{t.description}</span>
-                                                    <span className="text-xs text-white/40">{formatDate(t.date)}</span>
+                                                    <span className="font-medium text-white/90 text-base sm:text-lg">{t.description}</span>
+                                                    <span className="text-[10px] sm:text-xs text-white/40">{formatDate(t.date)}</span>
                                                 </>
                                             )}
                                         </div>
 
                                         {!isEditing && (
                                             <div className="flex items-center gap-4">
-                                                <span className={`font-mono font-semibold text-lg ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
+                                                <span className={`font-mono font-semibold text-base sm:text-lg ${t.type === 'income' ? 'text-emerald-400' : 'text-rose-400'
                                                     }`}>
                                                     {t.type === 'income' ? (book.type === 'fixed' ? '' : '+') : '-'}{formatCurrency(t.amount)}
                                                 </span>
@@ -344,119 +344,5 @@ export default function BookDetails() {
                 bookType={book.type}
             />
         </div>
-    );
-}
-import { useParams, useRouter } from 'next/navigation';
-import { Book, Transaction } from '@/types';
-import { loadBooks, saveBooks, calculateBookBalance, formatCurrency, formatDate } from '@/utils/storage';
-
-export default function BookDetails() {
-    const { id } = useParams();
-    const router = useRouter();
-    const [book, setBook] = useState<Book | null>(null);
-    const [books, setBooks] = useState<Book[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    // Date Filter State
-    const [selectedDate, setSelectedDate] = useState('');
-
-    // Modal State
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
-    const [amount, setAmount] = useState('');
-    const [description, setDescription] = useState('');
-
-    // Menu & Edit State for Transactions
-    const [transactionMenuOpenId, setTransactionMenuOpenId] = useState<string | null>(null);
-    const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null);
-    const [editDescription, setEditDescription] = useState('');
-    const menuRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const loadedBooks = loadBooks();
-        setBooks(loadedBooks);
-        const foundBook = loadedBooks.find((b: Book) => b.id === id);
-        if (!foundBook && isLoaded) {
-            router.push('/');
-        } else {
-            setBook(foundBook || null);
-        }
-
-        // Initialize Date Filter from URL
-        if (typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search);
-            const dateParam = params.get('date');
-            if (dateParam) {
-                setSelectedDate(dateParam);
-            }
-        }
-
-        setIsLoaded(true);
-    }, [id, router]);
-
-    // Close menu when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-                setTransactionMenuOpenId(null);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, []);
-
-    const openModal = (type: 'income' | 'expense') => {
-        setTransactionType(type);
-        setAmount('');
-        setDescription('');
-        setIsModalOpen(true);
-    };
-
-    import TransactionModal from '@/components/TransactionModal';
-
-    // ... (inside component)
-
-    const handleAddTransaction = (amount: number, description: string) => {
-        if (!book) return;
-
-        const newTransaction: Transaction = {
-            id: crypto.randomUUID(),
-            amount: amount,
-            description,
-            // For fixed books, we can just treat everything as 'income' for simplicity or 'fixed'
-            type: book.type === 'fixed' ? 'income' : transactionType,
-            date: selectedDate
-                ? (() => {
-                    const d = new Date();
-                    const [year, month, day] = selectedDate.split('-').map(Number);
-                    d.setFullYear(year, month - 1, day);
-                    return d.toISOString();
-                })()
-                : new Date().toISOString(),
-        };
-
-        const updatedTransactions = [newTransaction, ...book.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const updatedBook = { ...book, transactions: updatedTransactions };
-
-        const updatedBooks = books.map(b => b.id === book.id ? updatedBook : b);
-
-        setBooks(updatedBooks);
-        setBook(updatedBook);
-        saveBooks(updatedBooks);
-        // Modal closing is handled by the component's onSubmit prop or separate onClose
-    };
-
-    // ...
-
-    <TransactionModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onSubmit={handleAddTransaction}
-        type={transactionType}
-        bookType={book.type}
-    />
-        </div >
     );
 }
