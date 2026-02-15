@@ -58,12 +58,9 @@ export const calculateTotalBalance = (books: Book[], date?: string) => {
     return books.reduce((acc, book) => acc + calculateBookBalance(book, date), 0);
 }
 
-export const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD',
-    }).format(val);
-};
+export const formatCurrency = (amount: number) => {
+    return `৳${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
 
 export const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {

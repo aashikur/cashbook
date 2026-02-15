@@ -160,11 +160,7 @@ export default function BookDetails() {
             </div>
 
             <main className="relative z-10 max-w-lg mx-auto p-6 flex flex-col gap-6 min-h-screen">
-                <BookHeader
-                    book={book}
-                    selectedDate={selectedDate}
-                    onDateChange={setSelectedDate}
-                />
+                <BookHeader book={book} />
 
                 <BalanceCard
                     balance={balance}
@@ -184,27 +180,22 @@ export default function BookDetails() {
                     onExpenseClick={() => openModal('expense')}
                 />
 
-                <div className="flex flex-col gap-4 pb-12">
-                    <h3 className="text-xl font-semibold text-white/80 px-1">
-                        Transactions {selectedDate ? `(${formatDate(selectedDate)})` : ''}
-                    </h3>
-
-                    <TransactionList
-                        transactions={displayTransactions}
-                        bookType={book.type}
-                        selectedDate={selectedDate}
-                        editingTransactionId={editingTransactionId}
-                        editDescription={editDescription}
-                        transactionMenuOpenId={transactionMenuOpenId}
-                        onEditDescriptionChange={setEditDescription}
-                        onStartEdit={startEditingTransaction}
-                        onSaveEdit={handleEditTransaction}
-                        onCancelEdit={() => setEditingTransactionId(null)}
-                        onToggleMenu={toggleTransactionMenu}
-                        onDelete={deleteTransaction}
-                        menuRef={menuRef}
-                    />
-                </div>
+                <TransactionList
+                    transactions={displayTransactions}
+                    bookType={book.type}
+                    selectedDate={selectedDate}
+                    onDateChange={setSelectedDate}
+                    editingTransactionId={editingTransactionId}
+                    editDescription={editDescription}
+                    transactionMenuOpenId={transactionMenuOpenId}
+                    onEditDescriptionChange={setEditDescription}
+                    onStartEdit={startEditingTransaction}
+                    onSaveEdit={handleEditTransaction}
+                    onCancelEdit={() => setEditingTransactionId(null)}
+                    onToggleMenu={toggleTransactionMenu}
+                    onDelete={deleteTransaction}
+                    menuRef={menuRef}
+                />
             </main>
 
             <TransactionModal
