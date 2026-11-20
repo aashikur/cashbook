@@ -7,6 +7,8 @@ const PUBLIC_PATHS = [
   "/dashboard",
   "/orgs",
   "/api/v1",
+  "/api/health",
+  "/health",
 ];
 
 export async function middleware(request: NextRequest) {

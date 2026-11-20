@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAppStore } from "@/store/app-store";
 import { signOut, useSession } from "@/lib/auth-client";
 import {
+  Activity,
   ChevronDown,
   LogOut,
   Plus,
@@ -143,6 +144,17 @@ export default function AppHeader() {
                 <Plus size={14} />
                 <span>Create New Workspace</span>
               </button>
+
+              <div className="my-1 border-t border-border-subtle" />
+
+              <Link
+                href="/health"
+                onClick={() => setIsDropdownOpen(false)}
+                className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-txt-secondary hover:text-txt-main hover:bg-subtle transition-colors cursor-pointer"
+              >
+                <Activity size={14} className="text-cash-in" />
+                <span>System Health & Status</span>
+              </Link>
 
               <div className="my-1 border-t border-border-subtle" />
 
