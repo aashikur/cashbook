@@ -9,7 +9,7 @@
  *  4. Performs incremental delta sync (?since=timestamp) to update local Dexie cache.
  */
 
-import { localDb, LocalDailyLog, LocalExpense, SyncQueueItem } from "./local-db";
+import { localDb, SyncQueueItem } from "./local-db";
 
 const SYNC_TIMESTAMP_KEY = "cashbook_last_sync_timestamp";
 
@@ -74,7 +74,16 @@ export async function processSyncQueue(): Promise<{
         }
       } else if (item.entityType === "daily_log" && item.operation === "CREATE") {
         const localLog = await localDb.dailyLogs.get(item.entityId);
-        const payload = { ...item.payload } as Record<string, any>;
+        const payload: {
+          expenseId?: string;
+          attachments?: Array<{
+            key: string;
+            url: string;
+            mimeType: string;
+            sizeBytes: number;
+          }>;
+          [key: string]: unknown;
+        } = { ...item.payload };
 
         // 1. If there are pending receipt photo blobs, upload directly to R2 first
         if (localLog?.pendingBlobs && localLog.pendingBlobs.length > 0) {

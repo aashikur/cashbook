@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  Activity,
   ArrowLeft,
   CheckCircle2,
   Database,

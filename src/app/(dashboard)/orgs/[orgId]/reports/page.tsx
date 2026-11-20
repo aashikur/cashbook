@@ -8,7 +8,6 @@ import { formatCurrency } from "@/lib/utils";
 import {
   ArrowLeft,
   BarChart3,
-  Calendar,
   Download,
   PieChart,
 } from "lucide-react";
@@ -159,7 +158,7 @@ export default function ReportsPage({ params }: PageProps) {
             Total {selectedYear} Expenditures
           </span>
           <div className="text-4xl sm:text-5xl font-black text-txt-main font-mono tracking-tight">
-            {formatCurrency(grandTotalPaisa / 100, currency)}
+            {loading ? "..." : formatCurrency(grandTotalPaisa / 100, currency)}
           </div>
         </div>
 

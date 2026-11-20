@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 import AppHeader from "@/components/layout/AppHeader";
 import { useAppStore } from "@/store/app-store";
-import { ArrowLeft, Mail, Shield, Trash2, UserPlus, Users } from "lucide-react";
+import { ArrowLeft, Mail, Trash2, UserPlus, Users } from "lucide-react";
 
 type PageProps = {
   params: Promise<{ orgId: string }>;

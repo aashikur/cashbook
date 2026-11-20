@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { organizations, expenses, dailyLogs } from "@/db/schema";
+import { organizations, dailyLogs } from "@/db/schema";
 import { requireOrgMember } from "@/lib/auth-helpers";
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { z } from "zod";

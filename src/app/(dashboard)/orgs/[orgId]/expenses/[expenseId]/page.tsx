@@ -9,7 +9,6 @@ import { formatCurrency, formatDate } from "@/lib/utils";
 import {
   ArrowDownLeft,
   ArrowLeft,
-  ArrowUpRight,
   BookOpen,
   ChevronDown,
   DollarSign,

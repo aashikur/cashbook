@@ -11,7 +11,6 @@ import {
   LogOut,
   Plus,
   UserPlus,
-  Wifi,
   WifiOff,
 } from "lucide-react";
 
