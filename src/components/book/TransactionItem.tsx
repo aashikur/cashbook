@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { Transaction, Book } from '@/types';
+import React from 'react';
+import { Transaction } from '@/types';
 import { formatCurrency, formatDate } from '@/utils/storage';
 
 interface TransactionItemProps {

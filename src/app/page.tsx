@@ -3,16 +3,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Book, Transaction } from '@/types';
-import { loadBooks, saveBooks, calculateBookBalance, calculateTotalBalance, formatCurrency, formatDate } from '@/utils/storage';
+import { useBooks, useIsMounted, saveBooks, resetToDemoData, calculateBookBalance, calculateTotalBalance, formatCurrency, formatDate } from '@/utils/storage';
 import TransactionModal from '@/components/TransactionModal';
 import LoadingScreen from '@/components/LoadingScreen';
 
 export default function Home() {
-  const [books, setBooks] = useState<Book[]>([]);
+  const books = useBooks();
+  const isMounted = useIsMounted();
   const [newBookName, setNewBookName] = useState('');
   const [isFixedBook, setIsFixedBook] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
 
   // Date Filter State
   const [selectedDate, setSelectedDate] = useState('');
@@ -21,6 +21,7 @@ export default function Home() {
   const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
 
   // Quick Action Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -28,19 +29,17 @@ export default function Home() {
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>('income');
 
   const menuRef = useRef<HTMLDivElement>(null);
+  const headerMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
-  useEffect(() => {
-    const loadedBooks = loadBooks();
-    setBooks(loadedBooks);
-    setIsLoaded(true);
-  }, []);
-
-  // Close menu when clicking outside
+  // Close menus when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setMenuOpenId(null);
+      }
+      if (headerMenuRef.current && !headerMenuRef.current.contains(event.target as Node)) {
+        setIsHeaderMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -55,20 +54,17 @@ export default function Home() {
 
     const newBook: Book = {
       id: crypto.randomUUID(),
-      name: newBookName,
+      name: newBookName.trim(),
       type: isFixedBook ? 'fixed' : 'normal',
       transactions: [],
       createdAt: new Date().toISOString(),
     };
 
     const updatedBooks = [...books, newBook];
-    setBooks(updatedBooks);
     saveBooks(updatedBooks);
     setNewBookName('');
     setIsFixedBook(false);
     setIsAdding(false);
-    // Clear date filter when adding new book to avoid confusion?
-    // setSelectedDate(''); 
   };
 
   const handleEditBook = (e: React.FormEvent, bookId: string) => {
@@ -76,9 +72,8 @@ export default function Home() {
     if (!editName.trim()) return;
 
     const updatedBooks = books.map(book =>
-      book.id === bookId ? { ...book, name: editName } : book
+      book.id === bookId ? { ...book, name: editName.trim() } : book
     );
-    setBooks(updatedBooks);
     saveBooks(updatedBooks);
     setEditingId(null);
     setMenuOpenId(null);
@@ -93,11 +88,10 @@ export default function Home() {
   const deleteBook = (bookId: string) => {
     if (confirm('Are you sure you want to delete this book? All data will be lost.')) {
       const updatedBooks = books.filter(b => b.id !== bookId);
-      setBooks(updatedBooks);
       saveBooks(updatedBooks);
     }
     setMenuOpenId(null);
-  }
+  };
 
   const toggleMenu = (e: React.MouseEvent, bookId: string) => {
     e.stopPropagation();
@@ -115,10 +109,8 @@ export default function Home() {
   const handleQuickTransaction = (amount: number, description: string) => {
     if (!activeBookId) return;
 
-    const bookIndex = books.findIndex(b => b.id === activeBookId);
-    if (bookIndex === -1) return;
-
-    const book = books[bookIndex];
+    const book = books.find(b => b.id === activeBookId);
+    if (!book) return;
 
     const newTransaction: Transaction = {
       id: crypto.randomUUID(),
@@ -136,20 +128,13 @@ export default function Home() {
     };
 
     const updatedTransactions = [newTransaction, ...book.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    const updatedBook = { ...book, transactions: updatedTransactions };
-
-    const updatedBooks = [...books];
-    updatedBooks[bookIndex] = updatedBook;
-
-    setBooks(updatedBooks);
+    const updatedBooks = books.map(b => b.id === activeBookId ? { ...b, transactions: updatedTransactions } : b);
     saveBooks(updatedBooks);
-    // Modal closes automatically via component prop
   };
 
   const activeBook = activeBookId ? books.find(b => b.id === activeBookId) : null;
 
-  if (!isLoaded) return <LoadingScreen />;
-
+  if (!isMounted) return <LoadingScreen />;
   const totalBalance = calculateTotalBalance(books, selectedDate);
 
   // Sort books: Fixed first, then by creation (or kept in order)
@@ -174,23 +159,45 @@ export default function Home() {
             CashBook
           </h1>
 
-          <div className="flex items-center gap-3">
-            {/* Profile Icon */}
-            <button className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all">
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </button>
-
-            {/* Three Dot Menu */}
-            <button className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all">
+          <div className="flex items-center gap-3 relative" ref={headerMenuRef}>
+            {/* Seed / Settings Menu */}
+            <button
+              onClick={() => setIsHeaderMenuOpen(!isHeaderMenuOpen)}
+              className="p-2 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all cursor-pointer"
+              title="Options"
+              aria-label="Options"
+            >
               <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="1"></circle>
                 <circle cx="12" cy="5" r="1"></circle>
                 <circle cx="12" cy="19" r="1"></circle>
               </svg>
             </button>
+
+            {isHeaderMenuOpen && (
+              <div className="absolute right-0 top-10 w-48 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden py-1">
+                <button
+                  onClick={() => {
+                    resetToDemoData();
+                    setIsHeaderMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs text-white/90 hover:bg-white/5 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <span>🔄</span> Reset to Demo Data
+                </button>
+                <button
+                  onClick={() => {
+                    if (confirm('Clear all data?')) {
+                      saveBooks([]);
+                    }
+                    setIsHeaderMenuOpen(false);
+                  }}
+                  className="w-full text-left px-4 py-2.5 text-xs text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <span>🗑️</span> Clear All Books
+                </button>
+              </div>
+            )}
           </div>
         </header>
 
@@ -212,7 +219,7 @@ export default function Home() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 px-1">
             <h3 className="text-lg sm:text-xl font-semibold text-white/80">Your Books</h3>
             <div className="flex flex-wrap gap-2 items-center w-full sm:w-auto">
-              {/* Date Filter - Moved here */}
+              {/* Date Filter */}
               <div className="relative">
                 <input
                   type="date"
@@ -223,7 +230,8 @@ export default function Home() {
                 {selectedDate && (
                   <button
                     onClick={() => setSelectedDate('')}
-                    className="absolute -right-6 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1"
+                    className="absolute -right-6 top-1/2 -translate-y-1/2 text-white/40 hover:text-white p-1 cursor-pointer"
+                    aria-label="Clear date filter"
                   >
                     ✕
                   </button>
@@ -233,13 +241,13 @@ export default function Home() {
               <div className="flex gap-2 ml-auto sm:ml-0">
                 <button
                   onClick={() => { setIsFixedBook(true); setIsAdding(true); }}
-                  className="text-xs bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 px-3 py-1.5 rounded-lg transition-colors border border-indigo-500/20 whitespace-nowrap"
+                  className="text-xs bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 px-3 py-1.5 rounded-lg transition-colors border border-indigo-500/20 whitespace-nowrap cursor-pointer"
                 >
                   + Fix Book
                 </button>
                 <button
                   onClick={() => { setIsFixedBook(false); setIsAdding(true); }}
-                  className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors border border-white/5 whitespace-nowrap"
+                  className="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg transition-colors border border-white/5 whitespace-nowrap cursor-pointer"
                 >
                   + New Book
                 </button>
@@ -253,7 +261,7 @@ export default function Home() {
                 <span className="text-xs font-medium text-white/60 uppercase tracking-wide">
                   {isFixedBook ? 'Adding Fixed Book' : 'Adding Normal Book'}
                 </span>
-                <button type="button" onClick={() => setIsAdding(false)} className="text-white/40 hover:text-white">✕</button>
+                <button type="button" onClick={() => setIsAdding(false)} className="text-white/40 hover:text-white cursor-pointer">✕</button>
               </div>
               <div className="flex gap-2">
                 <input
@@ -264,7 +272,7 @@ export default function Home() {
                   value={newBookName}
                   onChange={(e) => setNewBookName(e.target.value)}
                 />
-                <button type="submit" className="bg-white text-black font-semibold px-4 rounded-lg hover:bg-gray-200 transition-colors">
+                <button type="submit" className="bg-white text-black font-semibold px-4 rounded-lg hover:bg-gray-200 transition-colors cursor-pointer">
                   Add
                 </button>
               </div>
@@ -273,8 +281,14 @@ export default function Home() {
 
           <div className="flex flex-col gap-3">
             {sortedBooks.length === 0 ? (
-              <div className="text-center py-12 text-white/20 italic bg-white/5 rounded-xl border border-white/5 border-dashed">
-                No books yet. Create one to start tracking.
+              <div className="text-center py-12 text-white/40 italic bg-white/5 rounded-xl border border-white/5 border-dashed flex flex-col items-center gap-3">
+                <span>No books yet. Create one or load demo data.</span>
+                <button
+                  onClick={resetToDemoData}
+                  className="text-xs bg-purple-500/20 text-purple-300 border border-purple-500/30 px-3 py-1.5 rounded-lg hover:bg-purple-500/30 transition-all cursor-pointer"
+                >
+                  Load Demo Data
+                </button>
               </div>
             ) : (
               sortedBooks.map(book => {
@@ -284,7 +298,7 @@ export default function Home() {
                 return (
                   <div
                     key={book.id}
-                    className={`group relative flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/5 hover:border-white/10 rounded-xl transition-all active:scale-[0.98] ${menuOpenId === book.id ? 'z-50' : 'z-0'}`}
+                    className={`group relative flex items-center justify-between p-4 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/5 hover:border-white/10 rounded-xl transition-all cursor-pointer active:scale-[0.98] ${menuOpenId === book.id ? 'z-50' : 'z-0'}`}
                     onClick={() => !isEditing && router.push(`/book/${book.id}${selectedDate ? `?date=${selectedDate}` : ''}`)}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -305,8 +319,8 @@ export default function Home() {
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
                           />
-                          <button type="submit" className="text-xs bg-emerald-500/20 text-emerald-400 px-2 rounded shrink-0">Save</button>
-                          <button type="button" onClick={() => setEditingId(null)} className="text-xs bg-white/10 px-2 rounded shrink-0">Cancel</button>
+                          <button type="submit" className="text-xs bg-emerald-500/20 text-emerald-400 px-2 rounded shrink-0 cursor-pointer">Save</button>
+                          <button type="button" onClick={() => setEditingId(null)} className="text-xs bg-white/10 px-2 rounded shrink-0 cursor-pointer">Cancel</button>
                         </form>
                       ) : (
                         <div className="min-w-0 truncate">
@@ -322,47 +336,48 @@ export default function Home() {
                     </div>
 
                     {!isEditing && (
-                      <div className="flex items-center gap-3 shrink-0 ml-2">
-                        {/* Quick Actions - Hidden on mobile, visible on sm and up */}
-                        <div className="hidden sm:flex items-center gap-1 mr-1">
+                      <div className="flex items-center gap-2 sm:gap-3 shrink-0 ml-2">
+                        {/* Quick Actions */}
+                        <div className="flex items-center gap-1">
                           {book.type === 'fixed' ? (
                             <button
                               onClick={(e) => openQuickAction(e, book.id, 'income')}
-                              className="w-8 h-8 rounded-full bg-indigo-500/10 hover:bg-indigo-500/30 text-indigo-400 border border-indigo-500/20 flex items-center justify-center transition-colors"
+                              className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-500/10 hover:bg-indigo-500/30 text-indigo-400 border border-indigo-500/20 flex items-center justify-center transition-colors cursor-pointer"
                               title="Update Balance"
                             >
-                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 21h5v-5" /></svg>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" /><path d="M16 21h5v-5" /></svg>
                             </button>
                           ) : (
                             <>
                               <button
                                 onClick={(e) => openQuickAction(e, book.id, 'income')}
-                                className="w-8 h-8 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-colors"
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-500/10 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-colors cursor-pointer"
                                 title="Add Income"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="M12 5v14" /></svg>
                               </button>
                               <button
                                 onClick={(e) => openQuickAction(e, book.id, 'expense')}
-                                className="w-8 h-8 rounded-full bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 flex items-center justify-center transition-colors"
+                                className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-rose-500/10 hover:bg-rose-500/30 text-rose-400 border border-rose-500/20 flex items-center justify-center transition-colors cursor-pointer"
                                 title="Add Expense"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /></svg>
                               </button>
                             </>
                           )}
                         </div>
 
-                        <div className={`font-mono font-bold text-right text-sm sm:text-base ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <div className={`font-mono font-bold text-right text-xs sm:text-base ${balance >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {formatCurrency(balance)}
                         </div>
 
                         <div className="relative">
                           <button
                             onClick={(e) => toggleMenu(e, book.id)}
-                            className="p-1 text-white/40 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+                            className="p-1 text-white/40 hover:text-white rounded-full hover:bg-white/10 transition-colors cursor-pointer"
+                            aria-label="Book actions"
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
                           </button>
 
                           {menuOpenId === book.id && (
@@ -373,13 +388,13 @@ export default function Home() {
                             >
                               <button
                                 onClick={() => startEditing(book)}
-                                className="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors"
+                                className="w-full text-left px-4 py-2 text-sm text-white/80 hover:bg-white/5 hover:text-white transition-colors cursor-pointer"
                               >
                                 Edit Name
                               </button>
                               <button
                                 onClick={() => deleteBook(book.id)}
-                                className="w-full text-left px-4 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors"
+                                className="w-full text-left px-4 py-2 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors cursor-pointer"
                               >
                                 Delete
                               </button>

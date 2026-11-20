@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Book, Transaction } from '@/types';
-import { loadBooks, saveBooks, calculateBookBalance, formatDate } from '@/utils/storage';
+import { Transaction } from '@/types';
+import { useBooks, useIsMounted, saveBooks, calculateBookBalance } from '@/utils/storage';
 import TransactionModal from '@/components/TransactionModal';
 import LoadingScreen from '@/components/LoadingScreen';
 import BookHeader from '@/components/book/BookHeader';
@@ -15,12 +15,15 @@ import TransactionList from '@/components/book/TransactionList';
 export default function BookDetails() {
     const { id } = useParams();
     const router = useRouter();
-    const [book, setBook] = useState<Book | null>(null);
-    const [books, setBooks] = useState<Book[]>([]);
-    const [isLoaded, setIsLoaded] = useState(false);
+    const books = useBooks();
+    const isMounted = useIsMounted();
 
-    // Date Filter State
-    const [selectedDate, setSelectedDate] = useState('');
+    // Initialize selectedDate from URL search param (client-only via lazy initializer)
+    const [selectedDate, setSelectedDate] = useState(() => {
+        if (typeof window === 'undefined') return '';
+        const params = new URLSearchParams(window.location.search);
+        return params.get('date') || '';
+    });
 
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -32,27 +35,14 @@ export default function BookDetails() {
     const [editDescription, setEditDescription] = useState('');
     const menuRef = useRef<HTMLDivElement>(null);
 
+    const book = books.find((b) => b.id === id);
+
+    // Once mounted and book not found, redirect home
     useEffect(() => {
-        const loadedBooks = loadBooks();
-        setBooks(loadedBooks);
-        const foundBook = loadedBooks.find((b: Book) => b.id === id);
-        if (!foundBook && isLoaded) {
+        if (isMounted && !book) {
             router.push('/');
-        } else {
-            setBook(foundBook || null);
         }
-
-        // Initialize Date Filter from URL
-        if (typeof window !== 'undefined') {
-            const params = new URLSearchParams(window.location.search);
-            const dateParam = params.get('date');
-            if (dateParam) {
-                setSelectedDate(dateParam);
-            }
-        }
-
-        setIsLoaded(true);
-    }, [id, router, isLoaded]);
+    }, [isMounted, book, router]);
 
     // Close menu when clicking outside
     useEffect(() => {
@@ -91,11 +81,7 @@ export default function BookDetails() {
         };
 
         const updatedTransactions = [newTransaction, ...book.transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        const updatedBook = { ...book, transactions: updatedTransactions };
-        const updatedBooks = books.map(b => b.id === book.id ? updatedBook : b);
-
-        setBooks(updatedBooks);
-        setBook(updatedBook);
+        const updatedBooks = books.map(b => b.id === book.id ? { ...b, transactions: updatedTransactions } : b);
         saveBooks(updatedBooks);
     };
 
@@ -103,11 +89,7 @@ export default function BookDetails() {
         if (!book) return;
         if (confirm("Are you sure you want to delete this transaction?")) {
             const updatedTransactions = book.transactions.filter(t => t.id !== transactionId);
-            const updatedBook = { ...book, transactions: updatedTransactions };
-            const updatedBooks = books.map(b => b.id === book.id ? updatedBook : b);
-
-            setBooks(updatedBooks);
-            setBook(updatedBook);
+            const updatedBooks = books.map(b => b.id === book.id ? { ...b, transactions: updatedTransactions } : b);
             saveBooks(updatedBooks);
         }
         setTransactionMenuOpenId(null);
@@ -129,18 +111,14 @@ export default function BookDetails() {
         if (!book || !editDescription.trim()) return;
 
         const updatedTransactions = book.transactions.map(t =>
-            t.id === tId ? { ...t, description: editDescription } : t
+            t.id === tId ? { ...t, description: editDescription.trim() } : t
         );
-        const updatedBook = { ...book, transactions: updatedTransactions };
-        const updatedBooks = books.map(b => b.id === book.id ? updatedBook : b);
-
-        setBooks(updatedBooks);
-        setBook(updatedBook);
+        const updatedBooks = books.map(b => b.id === book.id ? { ...b, transactions: updatedTransactions } : b);
         saveBooks(updatedBooks);
         setEditingTransactionId(null);
     };
 
-    if (!isLoaded || !book) return <LoadingScreen />;
+    if (!isMounted || !book) return <LoadingScreen />;
 
     const balance = calculateBookBalance(book, selectedDate);
 
@@ -149,8 +127,8 @@ export default function BookDetails() {
         ? book.transactions.filter(t => new Date(t.date).toLocaleDateString('en-CA') === selectedDate)
         : book.transactions;
 
-    const totalIncome = displayTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-    const totalExpense = displayTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+    const totalIncome = displayTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + (t.amount || 0), 0);
+    const totalExpense = displayTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + (t.amount || 0), 0);
 
     return (
         <div className="min-h-screen bg-[#0f0f13] text-white font-sans selection:bg-purple-500/30">
