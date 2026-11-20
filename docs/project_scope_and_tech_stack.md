@@ -55,3 +55,4 @@
 * **Offline Caching Window:** Mobile clients cache the **current fiscal year** (and previous 3 months) automatically for offline browsing; historical years (2–15 years back) are fetched on-demand when online.
 * **Strict Tenant Isolation:** Every database query and R2 object key (`orgs/{orgId}/{fiscalYear}/{fiscalMonth}/{uuid}.webp`) must be scoped and validated against `orgId` and active `org_members` permissions.
 *  Code will be production-ready and dry code as senior engineers split code. 
+*  loading.tsx will be used for loading state and error.tsx will be used for error state.
