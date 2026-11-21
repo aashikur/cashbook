@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
-import { BookOpen, Eye, EyeOff } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, Wallet } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
@@ -38,17 +38,24 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="bg-surface border border-border-default rounded-3xl p-8 shadow-sm">
-      {/* Brand Icon & Heading */}
-      <div className="flex flex-col items-center text-center mb-8">
-        <div className="w-12 h-12 rounded-2xl bg-primary-light border border-primary-border flex items-center justify-center text-primary mb-3">
-          <BookOpen size={24} />
+    <div className="bg-surface border border-border-default/80 rounded-3xl p-6 sm:p-8 shadow-sm">
+      {/* Brand Logo Header (Mockup Matched) */}
+      <div className="flex items-center justify-center gap-2.5 mb-6">
+        <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-500 text-white flex items-center justify-center shadow-md shadow-blue-500/25">
+          <Wallet size={20} className="stroke-[2.2]" />
         </div>
-        <h1 className="text-2xl font-bold text-txt-main tracking-tight">
-          Welcome to CashBook
+        <span className="text-2xl font-bold tracking-tight text-txt-main">
+          Cash<span className="text-primary">Book</span>
+        </span>
+      </div>
+
+      {/* Heading & Subtitle */}
+      <div className="text-center mb-6">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-txt-main tracking-tight">
+          Welcome back!
         </h1>
-        <p className="text-txt-secondary text-xs mt-1">
-          Manage your cash ledgers with ease
+        <p className="text-xs sm:text-sm text-txt-secondary mt-1">
+          Sign in to continue to CashBook
         </p>
       </div>
 
@@ -56,7 +63,7 @@ export default function SignInPage() {
       <button
         onClick={handleGoogleSignIn}
         disabled={googleLoading}
-        className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl border border-border-default hover:bg-subtle text-xs font-semibold text-txt-secondary transition-all mb-5 cursor-pointer disabled:opacity-50"
+        className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl border border-border-default hover:bg-subtle text-xs sm:text-sm font-semibold text-txt-main transition-all mb-5 cursor-pointer disabled:opacity-50 shadow-2xs"
       >
         <svg width="18" height="18" viewBox="0 0 24 24">
           <path
@@ -76,12 +83,13 @@ export default function SignInPage() {
             fill="#EA4335"
           />
         </svg>
-        {googleLoading ? "Redirecting…" : "Continue with Google"}
+        <span>{googleLoading ? "Redirecting…" : "Continue with Google"}</span>
       </button>
 
+      {/* Divider */}
       <div className="flex items-center gap-3 mb-5">
         <div className="h-px flex-1 bg-border-subtle" />
-        <span className="text-txt-muted text-xs">or email</span>
+        <span className="text-txt-muted text-xs">Or continue with email</span>
         <div className="h-px flex-1 bg-border-subtle" />
       </div>
 
@@ -93,30 +101,46 @@ export default function SignInPage() {
           </div>
         )}
 
+        {/* Email Field with Left Mail Icon */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-txt-secondary">Email</label>
-          <input
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="name@example.com"
-            className="bg-subtle border border-border-default rounded-xl px-4 py-2.5 text-sm text-txt-main placeholder:text-txt-muted focus:outline-none focus:bg-surface focus:border-primary transition-colors"
-          />
+          <label className="text-xs font-semibold text-txt-main">
+            Email address
+          </label>
+          <div className="relative">
+            <Mail
+              size={16}
+              className="text-txt-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            />
+            <input
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="w-full bg-subtle border border-border-default rounded-2xl pl-10 pr-4 py-2.5 sm:py-3 text-sm text-txt-main placeholder:text-txt-muted focus:outline-none focus:bg-surface focus:border-primary transition-colors"
+            />
+          </div>
         </div>
 
+        {/* Password Field with Left Lock Icon & Right Eye Toggle */}
         <div className="flex flex-col gap-1.5">
-          <label className="text-xs font-semibold text-txt-secondary">Password</label>
+          <label className="text-xs font-semibold text-txt-main">
+            Password
+          </label>
           <div className="relative">
+            <Lock
+              size={16}
+              className="text-txt-muted absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+            />
             <input
               type={showPassword ? "text" : "password"}
               autoComplete="current-password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full bg-subtle border border-border-default rounded-xl px-4 py-2.5 pr-10 text-sm text-txt-main placeholder:text-txt-muted focus:outline-none focus:bg-surface focus:border-primary transition-colors"
+              placeholder="Enter your password"
+              className="w-full bg-subtle border border-border-default rounded-2xl pl-10 pr-10 py-2.5 sm:py-3 text-sm text-txt-main placeholder:text-txt-muted focus:outline-none focus:bg-surface focus:border-primary transition-colors"
             />
             <button
               type="button"
@@ -128,22 +152,38 @@ export default function SignInPage() {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
+
+          {/* Forgot password */}
+          <div className="flex justify-end mt-0.5">
+            <button
+              type="button"
+              onClick={() =>
+                alert("Please check your email or contact your workspace admin to reset password.")
+              }
+              className="text-xs font-medium text-txt-secondary hover:text-primary transition-colors cursor-pointer"
+            >
+              Forgot password?
+            </button>
+          </div>
         </div>
 
+        {/* Primary Sign In Button */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-3 rounded-2xl font-bold text-xs bg-primary hover:bg-primary-hover text-white shadow-sm transition-all disabled:opacity-60 cursor-pointer mt-1"
+          className="w-full py-3 sm:py-3.5 rounded-full font-bold text-sm bg-primary hover:bg-primary-hover text-white shadow-md shadow-primary/20 transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2 mt-2"
         >
-          {loading ? "Signing in…" : "Sign In"}
+          <span>{loading ? "Signing in…" : "Sign In"}</span>
+          <ArrowRight size={16} />
         </button>
       </form>
 
-      <p className="text-center text-txt-secondary text-xs mt-6">
+      {/* Footer Link */}
+      <p className="text-center text-txt-secondary text-xs sm:text-sm mt-6">
         Don&apos;t have an account?{" "}
         <Link
           href="/sign-up"
-          className="text-primary font-semibold hover:underline"
+          className="text-primary font-bold hover:underline"
         >
           Sign up
         </Link>

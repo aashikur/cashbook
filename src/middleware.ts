@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Public endpoints and health checks accessible without authentication
+// Public endpoints, health checks, and static assets accessible without authentication
 const PUBLIC_PREFIXES = [
   "/api/auth",   // Better Auth authentication handlers
   "/api/health", // Health check API
   "/health",     // Health status UI
+  "/img",        // Public images
+  "/icons",      // App icons
 ];
 
 // Auth pages for visitors who are NOT logged in
@@ -71,6 +73,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.json|icons/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.json|icons/|img/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };
