@@ -93,17 +93,17 @@ export default function BookCard({
 
   const cleanAmount = formatCleanAmount(Math.abs(displayPaisa) / 100);
 
-  // Compact High-Density List View (25-30 items per screen without scrolling)
+  // Compact High-Density List View (Sleek height, exact same full width & side design)
   if (viewMode === "list") {
     return (
       <Link
         href={`/orgs/${orgId}/expenses/${id}`}
-        className="flex items-center justify-between py-1.5 px-3 bg-surface rounded-xl transition-all group cursor-pointer hover:bg-subtle active:scale-[0.99] border-0 shadow-none min-h-[34px]"
+        className="w-full flex items-center justify-between py-2 px-3.5 sm:px-4 bg-surface rounded-[12px] transition-all group cursor-pointer hover:bg-subtle active:scale-[0.99] border-0 shadow-none"
       >
-        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+        <div className="flex items-center gap-3 min-w-0 pr-2">
           {/* Compact Book Icon */}
-          <div className="w-6 h-6 rounded-lg bg-primary-light text-primary flex items-center justify-center shrink-0 border border-primary-border/60">
-            <BookOpen size={12} />
+          <div className="w-7 h-7 rounded-lg bg-primary-light text-primary flex items-center justify-center shrink-0 border border-primary-border/70 group-hover:bg-primary-light transition-colors">
+            <BookOpen size={14} />
           </div>
 
           {/* Compact Book Title */}
@@ -114,7 +114,7 @@ export default function BookCard({
 
         {/* Compact Balance */}
         <div
-          className={`font-semibold text-xs text-right shrink-0 ${
+          className={`font-semibold text-xs sm:text-sm text-right shrink-0 ${
             isZero
               ? "text-txt-muted"
               : isPositive
@@ -132,7 +132,7 @@ export default function BookCard({
   return (
     <Link
       href={`/orgs/${orgId}/expenses/${id}`}
-      className="flex items-center justify-between p-3.5 sm:p-4 bg-surface rounded-[12px] transition-all group cursor-pointer block hover:bg-subtle active:scale-[0.99] border-0 shadow-none"
+      className="w-full flex items-center justify-between p-3.5 sm:p-4 bg-surface rounded-[12px] transition-all group cursor-pointer hover:bg-subtle active:scale-[0.99] border-0 shadow-none"
     >
       <div className="flex items-center gap-3.5 min-w-0 pr-2">
         {/* Blue Book Icon Box (Reference Matched) */}

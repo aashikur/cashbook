@@ -173,7 +173,7 @@ export default function ExpenseLedgerList({
           )}
         </div>
       ) : (
-        <div className={viewMode === "list" ? "flex flex-col gap-0.5" : "flex flex-col gap-1"}>
+        <div className={viewMode === "list" ? "w-full flex flex-col gap-1.5" : "w-full flex flex-col gap-2"}>
           {sortedExpenses.map((expense) => (
             <BookCard
               key={expense.id}
