@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, use, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, use, useRef } from "react";
 import Link from "next/link";
 import { useLiveQuery } from "dexie-react-hooks";
 import QuickAddLogModal from "@/components/dashboard/QuickAddLogModal";
@@ -14,14 +14,18 @@ import {
   Archive,
   ArrowLeft,
   Calendar,
+  ChevronDown,
   Edit2,
   Filter,
   Image as ImageIcon,
   Minus,
   MoreVertical,
   Plus,
+  RotateCcw,
   Settings,
   Trash2,
+  TrendingDown,
+  TrendingUp,
   UserPlus,
   X,
 } from "lucide-react";
@@ -71,23 +75,29 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("All");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  const [pageSize, setPageSize] = useState<number | "All">(50);
+  const [pageSize, setPageSize] = useState<number | "All">(10);
+  const [isLimitFiltered, setIsLimitFiltered] = useState<boolean>(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
+  const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [isEditExpenseOpen, setIsEditExpenseOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<LocalDailyLog | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
+  const datePopoverRef = useRef<HTMLDivElement>(null);
   const currency = activeOrg?.currency || "USD";
 
   // Effective expense and logs (Dexie has priority for 0ms, server augments)
   const expense = cachedExpense || serverExpense;
   const rawLogs = cachedLogs ?? [];
 
-  // Close header menu on click outside
+  // Close menus on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsHeaderMenuOpen(false);
+      }
+      if (datePopoverRef.current && !datePopoverRef.current.contains(event.target as Node)) {
+        setIsDatePopoverOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -178,15 +188,82 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     refreshServerData();
   }, [refreshServerData]);
 
-  // 1. Date Range Filtered Logs (for Top Summary & Transactions)
+  // Quick date presets helper for Shadcn-style picker
+  function getPresetDates(preset: "today" | "yesterday" | "thisWeek" | "thisMonth" | "last30") {
+    const now = new Date();
+    const formatYmd = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
+
+    const todayStr = formatYmd(now);
+
+    if (preset === "today") {
+      return { from: todayStr, to: todayStr };
+    }
+    if (preset === "yesterday") {
+      const yest = new Date(now);
+      yest.setDate(now.getDate() - 1);
+      const yestStr = formatYmd(yest);
+      return { from: yestStr, to: yestStr };
+    }
+    if (preset === "thisWeek") {
+      const d = new Date(now);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+      const monday = new Date(d.setDate(diff));
+      return { from: formatYmd(monday), to: todayStr };
+    }
+    if (preset === "thisMonth") {
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: formatYmd(firstDay), to: todayStr };
+    }
+    if (preset === "last30") {
+      const past = new Date(now);
+      past.setDate(now.getDate() - 30);
+      return { from: formatYmd(past), to: todayStr };
+    }
+    return { from: "", to: "" };
+  }
+
+  // 1. Date Range Filtered Logs
   const dateFilteredLogs = rawLogs.filter((log) => {
     if (fromDate && log.logDate < fromDate) return false;
     if (toDate && log.logDate > toDate) return false;
     return true;
   });
 
-  // 2. Summary reactive to Date Range
-  const inLogs = dateFilteredLogs.filter((l) => {
+  // 2. Category Filter
+  const categoryFilteredLogs = dateFilteredLogs.filter((log) => {
+    if (selectedCategoryFilter === "All") return true;
+    return (
+      (log.category || "General").toLowerCase() ===
+      selectedCategoryFilter.toLowerCase()
+    );
+  });
+
+  // 3. Page Size Limit
+  const paginatedLogs =
+    pageSize === "All"
+      ? categoryFilteredLogs
+      : categoryFilteredLogs.slice(0, Number(pageSize));
+
+  // Determine if active filter is applied
+  const isFilterActive = Boolean(
+    fromDate ||
+    toDate ||
+    selectedCategoryFilter !== "All" ||
+    isLimitFiltered
+  );
+
+  // Top Calculation:
+  // - If NO filter is applied: calculates the overall whole ledger (all-time)
+  // - If ANY filter (date range, category, or selected limit) is applied: calculates ONLY for that filtered subset
+  const logsForSummary = isFilterActive ? paginatedLogs : rawLogs;
+
+  const inLogs = logsForSummary.filter((l) => {
     if (l.type) return l.type === "in";
     const lower = l.note.toLowerCase();
     return (
@@ -198,25 +275,30 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     );
   });
 
-  const outLogs = dateFilteredLogs.filter((l) => !inLogs.includes(l));
+  const outLogs = logsForSummary.filter((l) => !inLogs.includes(l));
   const totalInPaisa = inLogs.reduce((acc, l) => acc + l.amountPaisa, 0);
   const totalOutPaisa = outLogs.reduce((acc, l) => acc + l.amountPaisa, 0);
   const netBalancePaisa = totalInPaisa - totalOutPaisa;
 
-  // 3. Category Filter
-  const categoryFilteredLogs = dateFilteredLogs.filter((log) => {
-    if (selectedCategoryFilter === "All") return true;
-    return (
-      (log.category || "General").toLowerCase() ===
-      selectedCategoryFilter.toLowerCase()
-    );
-  });
+  // Clear all filters handler
+  function handleClearAllFilters() {
+    setFromDate("");
+    setToDate("");
+    setSelectedCategoryFilter("All");
+    setPageSize(10);
+    setIsLimitFiltered(false);
+  }
 
-  // 4. Page Size Limit
-  const paginatedLogs =
-    pageSize === "All"
-      ? categoryFilteredLogs
-      : categoryFilteredLogs.slice(0, Number(pageSize));
+  // Formatted date range label for Shadcn-style trigger button
+  const dateRangeLabel = useMemo(() => {
+    if (!fromDate && !toDate) return "Date range";
+    if (fromDate && toDate) {
+      if (fromDate === toDate) return formatDate(fromDate);
+      return `${formatDate(fromDate)} - ${formatDate(toDate)}`;
+    }
+    if (fromDate) return `From ${formatDate(fromDate)}`;
+    return `Until ${formatDate(toDate)}`;
+  }, [fromDate, toDate]);
 
   // Extract distinct categories present in this ledger
   const availableCategories = Array.from(
@@ -328,80 +410,44 @@ export default function ExpenseDetailPage({ params }: PageProps) {
       </header>
 
       <main className="max-w-md mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
-        {/* Top Summary Cards: Left = Summary (Net), Right = In & Out Breakdown */}
-        <div className="grid grid-cols-2 gap-3">
-          {/* Left Card: Summary / Net Balance */}
-          <div
-            className={`rounded-3xl p-4 shadow-sm flex flex-col justify-between min-h-[110px] border transition-transform active:scale-[0.98] ${
-              netBalancePaisa > 0
-                ? "bg-cash-in-light/60 border-cash-in-border/80"
-                : netBalancePaisa < 0
-                ? "bg-cash-out-light/60 border-cash-out-border/80"
-                : "bg-surface border-border-default"
-            }`}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold text-txt-secondary uppercase tracking-wider">
-                Summary
-              </span>
-              <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  netBalancePaisa > 0
-                    ? "bg-cash-in text-white shadow-xs"
-                    : netBalancePaisa < 0
-                    ? "bg-cash-out text-white shadow-xs"
-                    : "bg-subtle text-txt-muted"
-                }`}
-              >
-                {netBalancePaisa > 0
-                  ? "Surplus"
-                  : netBalancePaisa < 0
-                  ? "Deficit"
-                  : "Balanced"}
-              </span>
-            </div>
+        {/* Top Single Card (Modern Royal Blue Gradient, Matching Image 2) */}
+        <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-blue-500/15 bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 transition-all">
+          {/* Decorative ambient blurred circles */}
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
+          <div className="absolute right-12 -top-8 w-24 h-24 rounded-full bg-white/10 blur-lg pointer-events-none" />
 
-            <div
-              className={`text-2xl sm:text-3xl font-extrabold tracking-tight font-mono my-1 ${
-                netBalancePaisa > 0
-                  ? "text-cash-in"
-                  : netBalancePaisa < 0
-                  ? "text-cash-out"
-                  : "text-txt-main"
-              }`}
-            >
-              {netBalancePaisa > 0 ? "+" : netBalancePaisa < 0 ? "-" : ""}
-              {formatCurrency(Math.abs(netBalancePaisa) / 100, currency)}
+          {/* Top Row: Current Balance label + Filter status tag + Trending Icon */}
+          <div className="flex items-center justify-between mb-1.5 relative z-10">
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-medium text-white/80">
+                Current Balance
+              </span>
+              {isFilterActive && (
+                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-semibold text-white backdrop-blur-xs">
+                  Filtered ({logsForSummary.length})
+                </span>
+              )}
             </div>
-
-            <div className="text-[11px] font-medium text-txt-muted">
-              Net Balance
+            <div className="p-2 rounded-full bg-white/15 backdrop-blur-xs text-white">
+              {netBalancePaisa >= 0 ? (
+                <TrendingUp size={20} className="stroke-[2.5]" />
+              ) : (
+                <TrendingDown size={20} className="stroke-[2.5]" />
+              )}
             </div>
           </div>
 
-          {/* Right Card: Total In & Total Out Breakdown */}
-          <div className="bg-surface border border-border-default rounded-3xl p-3.5 sm:p-4 shadow-sm flex flex-col justify-between min-h-[110px] transition-transform active:scale-[0.98]">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-txt-secondary flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-cash-in inline-block" />
-                Total In
-              </span>
-              <span className="text-sm sm:text-base font-extrabold font-mono text-cash-in">
-                +{formatCurrency(totalInPaisa / 100, currency)}
-              </span>
-            </div>
+          {/* Middle: Big Balance Display */}
+          <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-sans my-1 text-white relative z-10">
+            {netBalancePaisa < 0 ? "-" : ""}
+            {formatCurrency(Math.abs(netBalancePaisa) / 100, currency)}
+          </div>
 
-            <div className="h-px bg-border-subtle my-1" />
-
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-txt-secondary flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-cash-out inline-block" />
-                Total Out
-              </span>
-              <span className="text-sm sm:text-base font-extrabold font-mono text-cash-out">
-                -{formatCurrency(totalOutPaisa / 100, currency)}
-              </span>
-            </div>
+          {/* Bottom Row: Income & Expense inline breakdown */}
+          <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-white/15 text-xs sm:text-sm text-white/90 font-medium relative z-10">
+            <span>Income {formatCurrency(totalInPaisa / 100, currency)}</span>
+            <span className="text-white/40">|</span>
+            <span>Expense {formatCurrency(totalOutPaisa / 100, currency)}</span>
           </div>
         </div>
 
@@ -414,68 +460,149 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                 <h2 className="text-lg font-bold text-txt-main tracking-tight">
                   Transactions
                 </h2>
-                <span className="text-xs text-txt-muted font-medium bg-subtle px-2 py-0.5 rounded-full">
-                  {paginatedLogs.length}
-                  {pageSize !== "All" &&
-                  paginatedLogs.length < categoryFilteredLogs.length
-                    ? ` of ${categoryFilteredLogs.length}`
-                    : ""}{" "}
-                  entries
-                </span>
               </div>
 
               {/* Right Filter Controls */}
               <div className="flex items-center gap-1.5">
-                {/* Clear Date Filter Button */}
-                {(fromDate || toDate) && (
+                {/* Global Clear Filters Button */}
+                {isFilterActive && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setFromDate("");
-                      setToDate("");
-                    }}
-                    className="flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] font-semibold bg-cash-out-light text-cash-out border border-cash-out-border hover:bg-cash-out-light/80 transition-colors cursor-pointer"
-                    title="Clear date range"
+                    onClick={handleClearAllFilters}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-cash-out-light text-cash-out border border-cash-out-border hover:bg-cash-out-light/80 transition-all cursor-pointer shadow-2xs"
+                    title="Clear all filters & restore overall whole calculation"
                   >
+                    <RotateCcw size={11} />
                     <span>Clear</span>
-                    <X size={11} />
                   </button>
                 )}
 
-                {/* Date Range Inputs */}
-                <div className="flex items-center gap-1 bg-surface border border-border-default rounded-xl px-2 py-1 text-xs shadow-2xs">
-                  <Calendar size={12} className="text-txt-muted shrink-0" />
-                  <input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="text-[10px] text-txt-main bg-transparent focus:outline-none cursor-pointer max-w-[78px] sm:max-w-none"
-                    title="From Date"
-                  />
-                  <span className="text-txt-muted text-[10px]">-</span>
-                  <input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className="text-[10px] text-txt-main bg-transparent focus:outline-none cursor-pointer max-w-[78px] sm:max-w-none"
-                    title="To Date"
-                  />
+                {/* Shadcn-style Single Date Range Button & Popover */}
+                <div className="relative" ref={datePopoverRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsDatePopoverOpen((prev) => !prev)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border shadow-2xs transition-all cursor-pointer ${
+                      fromDate || toDate
+                        ? "bg-primary-light/60 border-primary text-primary font-semibold"
+                        : "bg-surface border-border-default text-txt-main hover:bg-subtle"
+                    }`}
+                  >
+                    <Calendar
+                      size={13}
+                      className={fromDate || toDate ? "text-primary" : "text-txt-muted"}
+                    />
+                    <span className="truncate max-w-[130px] sm:max-w-none">
+                      {dateRangeLabel}
+                    </span>
+                    <ChevronDown size={12} className="text-txt-muted" />
+                  </button>
+
+                  {/* Popover */}
+                  {isDatePopoverOpen && (
+                    <div className="absolute right-0 top-10 w-72 sm:w-80 bg-surface border border-border-default rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-3">
+                      <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                        <span className="text-xs font-bold text-txt-main">
+                          Filter by Date Range
+                        </span>
+                        {(fromDate || toDate) && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFromDate("");
+                              setToDate("");
+                            }}
+                            className="text-[11px] font-semibold text-cash-out hover:underline cursor-pointer"
+                          >
+                            Clear Date
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {[
+                          { label: "Today", preset: "today" as const },
+                          { label: "Yesterday", preset: "yesterday" as const },
+                          { label: "This Week", preset: "thisWeek" as const },
+                          { label: "This Month", preset: "thisMonth" as const },
+                          { label: "Last 30 Days", preset: "last30" as const },
+                        ].map(({ label, preset }) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => {
+                              const { from, to } = getPresetDates(preset);
+                              setFromDate(from);
+                              setToDate(to);
+                              setIsDatePopoverOpen(false);
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-subtle hover:bg-subtle/80 text-txt-secondary hover:text-txt-main transition-colors text-center cursor-pointer"
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {/* Manual Inputs */}
+                      <div className="flex flex-col gap-2 pt-1 border-t border-border-subtle">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-[11px] font-medium text-txt-secondary w-12">
+                            From:
+                          </label>
+                          <input
+                            type="date"
+                            value={fromDate}
+                            onChange={(e) => setFromDate(e.target.value)}
+                            className="flex-1 bg-surface border border-border-default rounded-xl px-2.5 py-1 text-xs text-txt-main focus:outline-none focus:border-primary cursor-pointer"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-[11px] font-medium text-txt-secondary w-12">
+                            To:
+                          </label>
+                          <input
+                            type="date"
+                            value={toDate}
+                            onChange={(e) => setToDate(e.target.value)}
+                            className="flex-1 bg-surface border border-border-default rounded-xl px-2.5 py-1 text-xs text-txt-main focus:outline-none focus:border-primary cursor-pointer"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-subtle">
+                        <button
+                          type="button"
+                          onClick={() => setIsDatePopoverOpen(false)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer"
+                        >
+                          Apply
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* Page Size / Entities Selector */}
+                {/* Page Size / Entries Selector */}
                 <select
                   value={pageSize}
-                  onChange={(e) =>
-                    setPageSize(
+                  onChange={(e) => {
+                    const val =
                       e.target.value === "All"
                         ? "All"
-                        : Number(e.target.value)
-                    )
-                  }
-                  className="bg-surface border border-border-default rounded-xl px-2 py-1 text-xs font-semibold text-txt-main focus:outline-none focus:border-primary shadow-2xs cursor-pointer"
-                  title="Transactions per view"
+                        : Number(e.target.value);
+                    setPageSize(val);
+                    setIsLimitFiltered(val !== "All");
+                  }}
+                  className={`bg-surface border rounded-xl px-2.5 py-1.5 text-xs font-semibold shadow-2xs cursor-pointer focus:outline-none ${
+                    isLimitFiltered
+                      ? "border-primary text-primary"
+                      : "border-border-default text-txt-main"
+                  }`}
+                  title="Transactions to show and calculate"
                 >
                   <option value={10}>10</option>
+                  <option value={20}>20</option>
                   <option value={50}>50</option>
                   <option value={100}>100</option>
                   <option value={1000}>1000</option>
