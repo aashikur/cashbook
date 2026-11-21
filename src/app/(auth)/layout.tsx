@@ -36,7 +36,7 @@ export default function AuthLayout({
           {/* Headline with Decorative Accent */}
           <div className="relative inline-block">
             <h1 className="text-4xl xl:text-5xl font-black text-slate-900 tracking-tight leading-[1.15]">
-              Take control{" "}
+              Take control{" "} 
               <span className="relative inline-block">
                 of your
                 {/* Decorative hand-drawn angle marks */}
@@ -62,7 +62,7 @@ export default function AuthLayout({
 
             {/* The 3D Dashboard Mockup Card */}
             <Image
-              src="/img/login-hero.png"
+              src="/img/login-hero2.png"
               alt="CashBook Dashboard Preview"
               width={2435}
               height={1096}
