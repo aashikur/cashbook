@@ -4,6 +4,8 @@ import { dailyLogs, expenses } from "@/db/schema";
 import { requireOrgMember } from "@/lib/auth-helpers";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 type RouteProps = {
   params: Promise<{ orgId: string }>;
 };

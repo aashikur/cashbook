@@ -5,6 +5,7 @@ import Link from "next/link";
 import {
   ArrowLeft,
   CheckCircle2,
+  Code2,
   Database,
   HardDrive,
   RefreshCw,
@@ -263,6 +264,28 @@ export default function HealthPage() {
 
             <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-cash-in-light text-cash-in border border-cash-in-border">
               NORMAL
+            </span>
+          </div>
+
+          {/* Software Architecture & Creator */}
+          <div className="bg-surface border border-border-default rounded-2xl p-4 sm:p-5 shadow-xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-primary-light border border-primary-border flex items-center justify-center text-primary">
+                <Code2 size={20} />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-txt-main">
+                  Software Engineering & Architecture
+                </h3>
+                <p className="text-[11px] text-txt-muted">
+                  Designed & Engineered by{" "}
+                  <span className="font-semibold text-txt-main">Aashikur Rahaman</span>
+                </p>
+              </div>
+            </div>
+
+            <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-subtle text-txt-secondary border border-border-default font-mono">
+              v1.0.0
             </span>
           </div>
         </div>

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useAppStore } from "@/store/app-store";
 import { localDb } from "@/lib/local-db";
 import { enqueueSyncItem } from "@/lib/sync-service";
 import { compressReceiptImage } from "@/lib/image-compression";
+import CategoryPillSelector from "./CategoryPillSelector";
 import {
   ArrowDownLeft,
   ArrowUpRight,
@@ -15,9 +16,16 @@ import {
 
 interface QuickAddLogModalProps {
   onLogged?: () => void;
+  fixedExpenseId?: string;
+  expenseTitle?: string;
+  orgId?: string;
 }
 
-export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
+export default function QuickAddLogModal({
+  onLogged,
+  fixedExpenseId,
+  orgId,
+}: QuickAddLogModalProps) {
   const {
     activeOrg,
     activeExpenseId,
@@ -28,8 +36,14 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
     setAddLogOpen,
   } = useAppStore();
 
+  const currentOrgId = orgId || activeOrg?.id;
+
   const [amount, setAmount] = useState("");
-  const [expenseId, setExpenseId] = useState(activeExpenseId || "");
+  const [expenseId, setExpenseId] = useState(
+    fixedExpenseId || activeExpenseId || ""
+  );
+  const [category, setCategory] = useState("General");
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
   const [note, setNote] = useState("");
   const [logDate, setLogDate] = useState(
     selectedDate || new Date().toISOString().slice(0, 10)
@@ -48,39 +62,87 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync activeExpenseId from store if changed
+  // Sync activeExpenseId from store or fixedExpenseId if changed
   useEffect(() => {
-    if (activeExpenseId) setExpenseId(activeExpenseId);
-  }, [activeExpenseId]);
+    if (fixedExpenseId) {
+      setExpenseId(fixedExpenseId);
+    } else if (activeExpenseId) {
+      setExpenseId(activeExpenseId);
+    }
+  }, [fixedExpenseId, activeExpenseId]);
+
+  // Load custom categories from Dexie cache and server
+  const loadCategories = useCallback(() => {
+    if (!currentOrgId) return;
+    localDb.categories
+      .where("orgId")
+      .equals(currentOrgId)
+      .toArray()
+      .then((cats) => {
+        if (cats.length > 0) {
+          setCustomCategories(cats.map((c) => c.name));
+        }
+        fetch(`/api/v1/orgs/${currentOrgId}/categories`)
+          .then((r) => (r.ok ? r.json() : null))
+          .then(async (res) => {
+            if (res?.data) {
+              const names = res.data.map((c: { id: string; name: string }) => c.name);
+              setCustomCategories(names);
+              for (const item of res.data) {
+                await localDb.categories.put({
+                  id: item.id,
+                  orgId: currentOrgId,
+                  name: item.name,
+                  icon: item.icon || "Tag",
+                  createdAt: item.createdAt || new Date().toISOString(),
+                  updatedAt: item.updatedAt || new Date().toISOString(),
+                });
+              }
+            }
+          })
+          .catch(() => {});
+      })
+      .catch(() => {});
+  }, [currentOrgId]);
+
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
   // Load available expenses for dropdown
   useEffect(() => {
-    if (!activeOrg) return;
+    if (!currentOrgId) return;
     async function load() {
       const local = await localDb.expenses
         .where("orgId")
-        .equals(activeOrg!.id)
+        .equals(currentOrgId!)
         .and((e) => !e.isArchived)
         .toArray();
 
       if (local.length > 0) {
         setAvailableExpenses(local);
-        if (!expenseId && local.length > 0) setExpenseId(local[0].id);
+        if (!fixedExpenseId && !expenseId && local.length > 0) {
+          setExpenseId(local[0].id);
+        }
       } else {
         try {
-          const res = await fetch(`/api/v1/orgs/${activeOrg!.id}/expenses`);
+          const res = await fetch(`/api/v1/orgs/${currentOrgId}/expenses`, {
+            cache: "no-store",
+          });
           if (res.ok) {
             const { data } = await res.json();
             setAvailableExpenses(data);
-            if (!expenseId && data.length > 0) setExpenseId(data[0].id);
+            if (!fixedExpenseId && !expenseId && data.length > 0) {
+              setExpenseId(data[0].id);
+            }
           }
         } catch {}
       }
     }
     load();
-  }, [activeOrg, expenseId]);
+  }, [currentOrgId, fixedExpenseId, expenseId]);
 
-  if (!isAddLogOpen || !activeOrg) return null;
+  if (!isAddLogOpen || !currentOrgId) return null;
 
   async function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -113,12 +175,13 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
       setError("Please enter a valid positive amount");
       return;
     }
-    if (!expenseId) {
+    const targetExpenseId = fixedExpenseId || expenseId;
+    if (!targetExpenseId) {
       setError("Please select an expense ledger");
       return;
     }
-    if (!note.trim()) {
-      setError("Please enter a description/note");
+    if (!currentOrgId) {
+      setError("Organization context missing");
       return;
     }
 
@@ -143,38 +206,135 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
         ]
       : [];
 
+    const attachments: Array<{
+      key: string;
+      url: string;
+      mimeType: string;
+      sizeBytes: number;
+    }> = [];
+
+    // If online and receipt photo attached, upload it directly to R2 (with server fallback)
+    if (navigator.onLine && attachedBlob) {
+      try {
+        const presignRes = await fetch(
+          `/api/v1/orgs/${currentOrgId}/uploads/presign`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileName: `receipt_${logId}.webp`,
+              mimeType: "image/webp",
+              sizeBytes: attachedBlob.size,
+              fiscalYear: year,
+              fiscalMonth: month,
+            }),
+          }
+        );
+
+        let uploaded = false;
+
+        if (presignRes.ok) {
+          const { data: presignData } = await presignRes.json();
+
+          try {
+            const r2Res = await fetch(presignData.uploadUrl, {
+              method: "PUT",
+              headers: { "Content-Type": "image/webp" },
+              body: attachedBlob,
+            });
+
+            if (r2Res.ok) {
+              uploaded = true;
+              attachments.push({
+                key: presignData.key,
+                url: presignData.publicUrl,
+                mimeType: "image/webp",
+                sizeBytes: attachedBlob.size,
+              });
+            }
+          } catch (r2Err) {
+            console.warn("Direct R2 upload fallback to server:", r2Err);
+          }
+        }
+
+        if (!uploaded) {
+          const formData = new FormData();
+          formData.append("file", attachedBlob, `receipt_${logId}.webp`);
+          formData.append("fiscalYear", String(year));
+          formData.append("fiscalMonth", String(month));
+
+          const fallbackRes = await fetch(
+            `/api/v1/orgs/${currentOrgId}/uploads`,
+            {
+              method: "POST",
+              body: formData,
+            }
+          );
+
+          if (fallbackRes.ok) {
+            const { data: fallbackData } = await fallbackRes.json();
+            attachments.push({
+              key: fallbackData.key,
+              url: fallbackData.publicUrl,
+              mimeType: "image/webp",
+              sizeBytes: attachedBlob.size,
+            });
+          }
+        }
+      } catch (uploadErr) {
+        console.error("Failed to upload receipt image:", uploadErr);
+      }
+    }
+
     const payload = {
       id: logId,
-      expenseId,
-      amountPaisa: logType === "in" ? amountPaisa : amountPaisa,
+      expenseId: targetExpenseId,
+      type: logType,
+      category: category || "General",
+      amountPaisa,
       note: note.trim(),
       logDate,
-      attachments: [],
+      attachments,
     };
 
     // 1. Optimistic write to local Dexie database
     await localDb.dailyLogs.put({
       id: logId,
-      orgId: activeOrg!.id,
-      expenseId,
+      orgId: currentOrgId,
+      expenseId: targetExpenseId,
+      type: logType,
+      category: category || "General",
       amountPaisa: payload.amountPaisa,
       note: payload.note,
       logDate,
       fiscalYear: year,
       fiscalMonth: month,
-      attachments: [],
+      attachments,
       loggedBy: "current_user",
       createdAt: now,
       updatedAt: now,
-      syncStatus: navigator.onLine && !attachedBlob ? "synced" : "pending",
-      pendingBlobs,
+      syncStatus: navigator.onLine ? "synced" : "pending",
+      pendingBlobs: navigator.onLine ? [] : pendingBlobs,
     });
 
+    try {
+      const targetExp = await localDb.expenses.get(targetExpenseId);
+      if (targetExp) {
+        const signedDelta =
+          logType === "in" ? payload.amountPaisa : -payload.amountPaisa;
+        await localDb.expenses.update(targetExpenseId, {
+          totalSpent: targetExp.totalSpent + signedDelta,
+          logCount: targetExp.logCount + 1,
+          updatedAt: now,
+        });
+      }
+    } catch {}
+
     // 2. Network synchronization
-    if (navigator.onLine && !attachedBlob) {
+    if (navigator.onLine) {
       try {
         const res = await fetch(
-          `/api/v1/orgs/${activeOrg!.id}/expenses/${expenseId}/logs`,
+          `/api/v1/orgs/${currentOrgId}/expenses/${targetExpenseId}/logs`,
           {
             method: "POST",
             headers: {
@@ -190,7 +350,7 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
             entityType: "daily_log",
             entityId: logId,
             operation: "CREATE",
-            orgId: activeOrg!.id,
+            orgId: currentOrgId,
             payload,
           });
         }
@@ -199,7 +359,7 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
           entityType: "daily_log",
           entityId: logId,
           operation: "CREATE",
-          orgId: activeOrg!.id,
+          orgId: currentOrgId,
           payload,
         });
       }
@@ -208,7 +368,7 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
         entityType: "daily_log",
         entityId: logId,
         operation: "CREATE",
-        orgId: activeOrg!.id,
+        orgId: currentOrgId,
         payload,
       });
     }
@@ -221,7 +381,7 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
     onLogged?.();
   }
 
-  const currencySymbol = activeOrg.currency === "BDT" ? "৳" : "$";
+  const currencySymbol = activeOrg?.currency === "BDT" ? "৳" : "$";
   const isIn = logType === "in";
 
   return (
@@ -296,34 +456,49 @@ export default function QuickAddLogModal({ onLogged }: QuickAddLogModalProps) {
             </div>
           </div>
 
-          {/* Book / Ledger selector */}
-          <div className="flex flex-col gap-1">
-            <label className="text-[11px] font-bold uppercase tracking-wider text-txt-secondary">
-              Select Book
-            </label>
-            <select
-              required
-              value={expenseId}
-              onChange={(e) => setExpenseId(e.target.value)}
-              className="bg-subtle border border-border-default rounded-xl px-3.5 py-2.5 text-xs font-medium text-txt-main focus:outline-none focus:bg-surface focus:border-primary transition-colors cursor-pointer"
-            >
-              {availableExpenses.map((exp) => (
-                <option key={exp.id} value={exp.id}>
-                  {exp.title}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Book / Ledger selector - hidden when already inside a book or if only 1 book */}
+          {!fixedExpenseId && availableExpenses.length > 1 && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-txt-secondary">
+                Book / Ledger
+              </label>
+              <select
+                required
+                value={expenseId}
+                onChange={(e) => setExpenseId(e.target.value)}
+                className="bg-subtle border border-border-default rounded-xl px-3.5 py-2.5 text-xs font-medium text-txt-main focus:outline-none focus:bg-surface focus:border-primary transition-colors cursor-pointer"
+              >
+                {availableExpenses.map((exp) => (
+                  <option key={exp.id} value={exp.id}>
+                    {exp.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* Description */}
+          {/* Quick Category Selection (Pills + On-The-Fly Custom "+ New" + Manage ✏️) */}
+          <CategoryPillSelector
+            selectedCategory={category}
+            onSelectCategory={setCategory}
+            availableCustomCategories={customCategories}
+            onAddCustomCategory={(newCat) => {
+              setCustomCategories((prev) =>
+                prev.includes(newCat) ? prev : [...prev, newCat]
+              );
+            }}
+            orgId={currentOrgId}
+            onCategoriesChanged={loadCategories}
+          />
+
+          {/* Remarks (Optional) */}
           <div className="flex flex-col gap-1">
             <label className="text-[11px] font-bold uppercase tracking-wider text-txt-secondary">
-              Description / Detail
+              Remarks <span className="normal-case font-normal text-txt-muted">(Optional)</span>
             </label>
             <input
               type="text"
-              required
-              placeholder="e.g. Supermarket, Family dinner, Rent"
+              placeholder="e.g. Supermarket, Dinner (Optional)"
               value={note}
               onChange={(e) => setNote(e.target.value)}
               className="bg-subtle border border-border-default rounded-xl px-3.5 py-2.5 text-xs text-txt-main placeholder:text-txt-muted focus:outline-none focus:bg-surface focus:border-primary transition-colors"

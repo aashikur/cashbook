@@ -1,6 +1,7 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-type OrgContext = {
+export type OrgContext = {
   id: string;
   name: string;
   currency: string;
@@ -8,9 +9,18 @@ type OrgContext = {
 };
 
 type AppState = {
-  // Active org
+  // Active org & list
   activeOrg: OrgContext | null;
   setActiveOrg: (org: OrgContext | null) => void;
+  orgs: OrgContext[];
+  setOrgs: (orgs: OrgContext[]) => void;
+  addOrg: (org: OrgContext) => void;
+  updateOrgInStore: (updated: Partial<OrgContext> & { id: string }) => void;
+  removeOrgFromStore: (id: string) => void;
+
+  // Loading state for organizations
+  isOrgsLoading: boolean;
+  setIsOrgsLoading: (loading: boolean) => void;
 
   // Date filter (YYYY-MM-DD or empty for all)
   selectedDate: string;
@@ -34,28 +44,81 @@ type AppState = {
 
   isOrgSwitcherOpen: boolean;
   setOrgSwitcherOpen: (open: boolean) => void;
+
+  isEditOrgOpen: boolean;
+  setEditOrgOpen: (open: boolean) => void;
+  editingOrg: OrgContext | null;
+  setEditingOrg: (org: OrgContext | null) => void;
 };
 
-export const useAppStore = create<AppState>((set) => ({
-  activeOrg: null,
-  setActiveOrg: (org) => set({ activeOrg: org }),
+export const useAppStore = create<AppState>()(
+  persist(
+    (set) => ({
+      activeOrg: null,
+      setActiveOrg: (org) => set({ activeOrg: org }),
+      orgs: [],
+      setOrgs: (orgs) => set({ orgs }),
+      addOrg: (org) =>
+        set((state) => {
+          const exists = state.orgs.some((o) => o.id === org.id);
+          const nextOrgs = exists
+            ? state.orgs.map((o) => (o.id === org.id ? org : o))
+            : [org, ...state.orgs];
+          return { orgs: nextOrgs, activeOrg: org };
+        }),
+      updateOrgInStore: (updated) =>
+        set((state) => {
+          const nextOrgs = state.orgs.map((o) =>
+            o.id === updated.id ? { ...o, ...updated } : o
+          );
+          const nextActive =
+            state.activeOrg?.id === updated.id
+              ? { ...state.activeOrg, ...updated }
+              : state.activeOrg;
+          return { orgs: nextOrgs, activeOrg: nextActive };
+        }),
+      removeOrgFromStore: (id) =>
+        set((state) => {
+          const nextOrgs = state.orgs.filter((o) => o.id !== id);
+          const nextActive =
+            state.activeOrg?.id === id
+              ? nextOrgs.length > 0
+                ? nextOrgs[0]
+                : null
+              : state.activeOrg;
+          return { orgs: nextOrgs, activeOrg: nextActive };
+        }),
 
-  selectedDate: "",
-  setSelectedDate: (date) => set({ selectedDate: date }),
-  clearDateFilter: () => set({ selectedDate: "" }),
+      isOrgsLoading: true,
+      setIsOrgsLoading: (loading) => set({ isOrgsLoading: loading }),
 
-  activeExpenseId: null,
-  setActiveExpenseId: (id) => set({ activeExpenseId: id }),
+      selectedDate: "",
+      setSelectedDate: (date) => set({ selectedDate: date }),
+      clearDateFilter: () => set({ selectedDate: "" }),
 
-  logType: "out",
-  setLogType: (type) => set({ logType: type }),
+      activeExpenseId: null,
+      setActiveExpenseId: (id) => set({ activeExpenseId: id }),
 
-  isAddExpenseOpen: false,
-  setAddExpenseOpen: (open) => set({ isAddExpenseOpen: open }),
+      logType: "out",
+      setLogType: (type) => set({ logType: type }),
 
-  isAddLogOpen: false,
-  setAddLogOpen: (open) => set({ isAddLogOpen: open }),
+      isAddExpenseOpen: false,
+      setAddExpenseOpen: (open) => set({ isAddExpenseOpen: open }),
 
-  isOrgSwitcherOpen: false,
-  setOrgSwitcherOpen: (open) => set({ isOrgSwitcherOpen: open }),
-}));
+      isAddLogOpen: false,
+      setAddLogOpen: (open) => set({ isAddLogOpen: open }),
+
+      isOrgSwitcherOpen: false,
+      setOrgSwitcherOpen: (open) => set({ isOrgSwitcherOpen: open }),
+
+      isEditOrgOpen: false,
+      setEditOrgOpen: (open) => set({ isEditOrgOpen: open }),
+      editingOrg: null,
+      setEditingOrg: (org) => set({ editingOrg: org }),
+    }),
+    {
+      name: "cashbook-app-storage",
+      partialize: (state) => ({ activeOrg: state.activeOrg }),
+    }
+  )
+);

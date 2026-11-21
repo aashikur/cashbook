@@ -9,6 +9,17 @@ import * as schema from "@/db/schema";
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET || "default_local_dev_secret_32_characters_long_min",
+  trustedOrigins: [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://192.168.1.105:3000",
+    "http://192.168.*.*:3000",
+    "http://10.*.*.*:3000",
+    ...(process.env.NEXT_PUBLIC_APP_URL ? [process.env.NEXT_PUBLIC_APP_URL] : []),
+    ...(process.env.BETTER_AUTH_TRUSTED_ORIGINS
+      ? process.env.BETTER_AUTH_TRUSTED_ORIGINS.split(",").map((s) => s.trim())
+      : []),
+  ].filter(Boolean),
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: {

@@ -5,10 +5,10 @@ import { useAppStore } from "@/store/app-store";
 import { Building2, X } from "lucide-react";
 
 export default function CreateOrgModal() {
-  const { isOrgSwitcherOpen, setOrgSwitcherOpen, setActiveOrg } = useAppStore();
+  const { isOrgSwitcherOpen, setOrgSwitcherOpen, setActiveOrg, addOrg } = useAppStore();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("BDT");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -38,12 +38,15 @@ export default function CreateOrgModal() {
         return;
       }
 
-      setActiveOrg({
+      const newOrg = {
         id: data.data.id,
         name: data.data.name,
         currency: data.data.currency,
-        role: "admin",
-      });
+        role: "admin" as const,
+      };
+
+      addOrg(newOrg);
+      setActiveOrg(newOrg);
 
       setOrgSwitcherOpen(false);
       setName("");

@@ -5,9 +5,13 @@ import { requireOrgMember } from "@/lib/auth-helpers";
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const updateLogSchema = z.object({
+  type: z.enum(["in", "out"]).optional(),
+  category: z.string().min(1).optional(),
   amountPaisa: z.number().int().positive().optional(),
-  note: z.string().min(1).max(500).optional(),
+  note: z.string().max(500).optional(),
   logDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   expenseId: z.string().uuid().optional(),
   attachments: z
@@ -82,40 +86,43 @@ export async function PATCH(req: NextRequest, { params }: RouteProps) {
       newFiscalMonth = m;
     }
 
-    const deltaPaisa =
-      validated.amountPaisa !== undefined
-        ? validated.amountPaisa - existingLog.amountPaisa
-        : 0;
+    const oldSigned =
+      existingLog.type === "in"
+        ? existingLog.amountPaisa
+        : -existingLog.amountPaisa;
 
-    const updatedLog = await db.transaction(async (tx) => {
-      const [updated] = await tx
-        .update(dailyLogs)
+    const finalType = validated.type ?? existingLog.type;
+    const finalAmount = validated.amountPaisa ?? existingLog.amountPaisa;
+    const newSigned = finalType === "in" ? finalAmount : -finalAmount;
+    const deltaSigned = newSigned - oldSigned;
+
+    const [updatedLog] = await db
+      .update(dailyLogs)
+      .set({
+        type: finalType,
+        category: validated.category ?? existingLog.category,
+        amountPaisa: finalAmount,
+        note: validated.note ?? existingLog.note,
+        logDate: validated.logDate ?? existingLog.logDate,
+        fiscalYear: newFiscalYear,
+        fiscalMonth: newFiscalMonth,
+        expenseId: validated.expenseId ?? existingLog.expenseId,
+        attachments: validated.attachments ?? existingLog.attachments,
+        updatedAt: now,
+      })
+      .where(eq(dailyLogs.id, logId))
+      .returning();
+
+    // Adjust totalSpent on parent expense based on signed balance delta
+    if (deltaSigned !== 0) {
+      await db
+        .update(expenses)
         .set({
-          amountPaisa: validated.amountPaisa ?? existingLog.amountPaisa,
-          note: validated.note ?? existingLog.note,
-          logDate: validated.logDate ?? existingLog.logDate,
-          fiscalYear: newFiscalYear,
-          fiscalMonth: newFiscalMonth,
-          expenseId: validated.expenseId ?? existingLog.expenseId,
-          attachments: validated.attachments ?? existingLog.attachments,
+          totalSpent: sql`${expenses.totalSpent} + ${deltaSigned}`,
           updatedAt: now,
         })
-        .where(eq(dailyLogs.id, logId))
-        .returning();
-
-      // Adjust totalSpent on parent expense if amount changed
-      if (deltaPaisa !== 0) {
-        await tx
-          .update(expenses)
-          .set({
-            totalSpent: sql`${expenses.totalSpent} + ${deltaPaisa}`,
-            updatedAt: now,
-          })
-          .where(eq(expenses.id, existingLog.expenseId));
-      }
-
-      return updated;
-    });
+        .where(eq(expenses.id, existingLog.expenseId));
+    }
 
     return NextResponse.json({ success: true, data: updatedLog });
   } catch (err: unknown) {
@@ -152,26 +159,29 @@ export async function DELETE(_req: NextRequest, { params }: RouteProps) {
 
   const now = new Date();
 
-  await db.transaction(async (tx) => {
-    // Soft delete log by setting deletedAt
-    await tx
-      .update(dailyLogs)
-      .set({
-        deletedAt: now,
-        updatedAt: now,
-      })
-      .where(eq(dailyLogs.id, logId));
+  // Soft delete log by setting deletedAt
+  await db
+    .update(dailyLogs)
+    .set({
+      deletedAt: now,
+      updatedAt: now,
+    })
+    .where(eq(dailyLogs.id, logId));
 
-    // Decrement running totalSpent and logCount on parent expense
-    await tx
-      .update(expenses)
-      .set({
-        totalSpent: sql`greatest(0, ${expenses.totalSpent} - ${existingLog.amountPaisa})`,
-        logCount: sql`greatest(0, ${expenses.logCount} - 1)`,
-        updatedAt: now,
-      })
-      .where(eq(expenses.id, existingLog.expenseId));
-  });
+  const oldSigned =
+    existingLog.type === "in"
+      ? existingLog.amountPaisa
+      : -existingLog.amountPaisa;
+
+  // Revert signed delta and decrement logCount on parent expense
+  await db
+    .update(expenses)
+    .set({
+      totalSpent: sql`${expenses.totalSpent} - ${oldSigned}`,
+      logCount: sql`greatest(0, ${expenses.logCount} - 1)`,
+      updatedAt: now,
+    })
+    .where(eq(expenses.id, existingLog.expenseId));
 
   return NextResponse.json({ success: true, message: "Log soft-deleted successfully" });
 }

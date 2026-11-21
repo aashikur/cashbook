@@ -5,10 +5,14 @@ import { requireOrgMember } from "@/lib/auth-helpers";
 import { and, eq, gte, lte, isNull, desc, sql } from "drizzle-orm";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const createLogSchema = z.object({
   id: z.string().uuid().optional(),
+  type: z.enum(["in", "out"]).default("out"),
+  category: z.string().min(1).default("General"),
   amountPaisa: z.number().int().positive("Amount must be a positive integer in paisa/cents"),
-  note: z.string().min(1, "Note description is required").max(500),
+  note: z.string().max(500).optional().default(""),
   logDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Format must be YYYY-MM-DD"),
   attachments: z
     .array(
@@ -35,6 +39,7 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
   const { searchParams } = new URL(req.url);
   const from = searchParams.get("from");
   const to = searchParams.get("to");
+  const category = searchParams.get("category");
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
   const offset = (page - 1) * limit;
@@ -47,6 +52,7 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
 
   if (from) conditions.push(gte(dailyLogs.logDate, from));
   if (to) conditions.push(lte(dailyLogs.logDate, to));
+  if (category && category !== "All") conditions.push(eq(dailyLogs.category, category));
 
   const items = await db.query.dailyLogs.findMany({
     where: and(...conditions),
@@ -95,46 +101,48 @@ export async function POST(req: NextRequest, { params }: RouteProps) {
       );
     }
 
-    // Atomic insert of log + atomic increment of parent expense totalSpent & logCount
-    const newLog = await db.transaction(async (tx) => {
-      const [inserted] = await tx
-        .insert(dailyLogs)
-        .values({
-          id: logId,
-          orgId,
-          expenseId,
-          amountPaisa: validated.amountPaisa,
-          note: validated.note,
-          logDate: validated.logDate,
-          fiscalYear: year,
-          fiscalMonth: month,
-          attachments: validated.attachments,
-          loggedBy: authRes.context.userId,
-          createdAt: now,
+    // Insert log + increment parent expense totalSpent & logCount
+    const [inserted] = await db
+      .insert(dailyLogs)
+      .values({
+        id: logId,
+        orgId,
+        expenseId,
+        type: validated.type,
+        category: validated.category,
+        amountPaisa: validated.amountPaisa,
+        note: validated.note,
+        logDate: validated.logDate,
+        fiscalYear: year,
+        fiscalMonth: month,
+        attachments: validated.attachments,
+        loggedBy: authRes.context.userId,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoNothing({ target: dailyLogs.id })
+      .returning();
+
+    if (inserted) {
+      // Signed balance delta (+ for in, - for out)
+      const signedDelta =
+        validated.type === "in" ? validated.amountPaisa : -validated.amountPaisa;
+
+      await db
+        .update(expenses)
+        .set({
+          totalSpent: sql`${expenses.totalSpent} + ${signedDelta}`,
+          logCount: sql`${expenses.logCount} + 1`,
           updatedAt: now,
         })
-        .onConflictDoNothing({ target: dailyLogs.id })
-        .returning();
+        .where(eq(expenses.id, expenseId));
+    }
 
-      if (inserted) {
-        // Increment running total and count on parent expense
-        await tx
-          .update(expenses)
-          .set({
-            totalSpent: sql`${expenses.totalSpent} + ${validated.amountPaisa}`,
-            logCount: sql`${expenses.logCount} + 1`,
-            updatedAt: now,
-          })
-          .where(eq(expenses.id, expenseId));
-      }
-
-      return (
-        inserted ||
-        (await tx.query.dailyLogs.findFirst({
-          where: eq(dailyLogs.id, logId),
-        }))
-      );
-    });
+    const newLog =
+      inserted ||
+      (await db.query.dailyLogs.findFirst({
+        where: eq(dailyLogs.id, logId),
+      }));
 
     return NextResponse.json({ success: true, data: newLog }, { status: 201 });
   } catch (err: unknown) {

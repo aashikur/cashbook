@@ -4,12 +4,13 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { signIn } from "@/lib/auth-client";
-import { BookOpen } from "lucide-react";
+import { BookOpen, Eye, EyeOff } from "lucide-react";
 
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
@@ -107,15 +108,26 @@ export default function SignInPage() {
 
         <div className="flex flex-col gap-1.5">
           <label className="text-xs font-semibold text-txt-secondary">Password</label>
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-            className="bg-subtle border border-border-default rounded-xl px-4 py-2.5 text-sm text-txt-main placeholder:text-txt-muted focus:outline-none focus:bg-surface focus:border-primary transition-colors"
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full bg-subtle border border-border-default rounded-xl px-4 py-2.5 pr-10 text-sm text-txt-main placeholder:text-txt-muted focus:outline-none focus:bg-surface focus:border-primary transition-colors"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              tabIndex={-1}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-txt-muted hover:text-txt-main p-1 rounded-md transition-colors cursor-pointer"
+              title={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
 
         <button
@@ -136,6 +148,14 @@ export default function SignInPage() {
           Sign up
         </Link>
       </p>
+
+      {/* Developer Attribution (Read-only) */}
+      <div className="text-center mt-6 pt-4 border-t border-border-subtle">
+        <p className="text-[11px] text-txt-muted">
+          Designed & Developed by{" "}
+          <span className="font-semibold text-txt-main">Aashikur Rahaman</span>
+        </p>
+      </div>
     </div>
   );
 }

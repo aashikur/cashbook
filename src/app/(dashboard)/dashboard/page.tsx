@@ -17,8 +17,13 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { BookOpen, Plus } from "lucide-react";
 
 export default function DashboardPage() {
-  const { activeOrg, setOrgSwitcherOpen } = useAppStore();
+  const { activeOrg, setOrgSwitcherOpen, isOrgsLoading } = useAppStore();
+  const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 1. Live query from local Dexie IndexedDB (Reactive offline-first)
   const localExpenses = useLiveQuery(
@@ -54,7 +59,28 @@ export default function DashboardPage() {
     );
   }, [localExpenses, searchQuery]);
 
-  // If user has no active organization yet
+  // Loading skeleton during hydration or while initial organization is loading
+  if (!mounted || (isOrgsLoading && !activeOrg)) {
+    return (
+      <div className="min-h-screen flex flex-col bg-canvas pb-24">
+        <AppHeader />
+        <main className="max-w-md mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
+          <div className="h-11 bg-surface border border-border-default rounded-2xl animate-pulse" />
+          <div className="flex items-center justify-between mt-1">
+            <div className="h-6 w-28 bg-slate-200 dark:bg-slate-800 rounded-lg animate-pulse" />
+            <div className="h-9 w-32 bg-slate-200 dark:bg-slate-800 rounded-full animate-pulse" />
+          </div>
+          <div className="flex flex-col gap-3">
+            <div className="h-20 bg-surface border border-border-default rounded-2xl animate-pulse" />
+            <div className="h-20 bg-surface border border-border-default rounded-2xl animate-pulse" />
+          </div>
+        </main>
+        <BottomNav />
+      </div>
+    );
+  }
+
+  // If user has no active organization yet (after loading finishes)
   if (!activeOrg) {
     return (
       <div className="min-h-screen flex flex-col bg-canvas">

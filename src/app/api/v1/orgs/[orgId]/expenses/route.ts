@@ -5,6 +5,8 @@ import { requireOrgMember } from "@/lib/auth-helpers";
 import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod";
 
+export const dynamic = "force-dynamic";
+
 const createExpenseSchema = z.object({
   id: z.string().uuid().optional(),
   title: z.string().min(1, "Title is required").max(100),

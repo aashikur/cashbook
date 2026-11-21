@@ -39,6 +39,10 @@ export const dailyLogs = pgTable(
     expenseId: text("expense_id")
       .notNull()
       .references(() => expenses.id, { onDelete: "restrict" }),
+    // Explicit transaction direction: "in" (Cash In) vs "out" (Cash Out / Expense)
+    type: text("type").$type<"in" | "out">().notNull().default("out"),
+    // High-level category (Rent, EMI, Food, Shopping, Utilities, Salary, etc. Default: General)
+    category: text("category").notNull().default("General"),
     // Store as integer cents (BDT paisa) to avoid floating-point drift.
     // e.g. ৳1,250.75 → 125075
     amountPaisa: integer("amount_paisa").notNull(),
@@ -68,6 +72,8 @@ export const dailyLogs = pgTable(
       t.expenseId,
       t.logDate
     ),
+    // Category indexing for fast analytics & filtering
+    index("daily_logs_org_category_idx").on(t.orgId, t.category),
     // Delta sync for mobile clients
     index("daily_logs_org_updated_idx").on(t.orgId, t.updatedAt),
   ]

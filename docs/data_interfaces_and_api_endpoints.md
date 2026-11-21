@@ -77,8 +77,10 @@ export interface DailyLog {
   id: string;                  // Client-generated UUID (used as Idempotency-Key)
   orgId: string;               // FK -> organizations.id (Partition/Index key)
   expenseId: string;           // FK -> expenses.id (Indexed)
-  amount: number;              // Transaction amount
-  note: string;                // Transaction description
+  amountPaisa: number;         // Transaction amount stored strictly in integer paisa/cents
+  type: 'in' | 'out';          // Cash In (+) or Cash Out (-)
+  category?: string;           // Category grouping tag (e.g. "Food & Dining", "Rent")
+  note: string;                // Transaction description / Remarks (optional)
   logDate: string;             // "YYYY-MM-DD" (Indexed)
   fiscalYear: number;          // e.g., 2026 (Compound Index: orgId + fiscalYear)
   fiscalMonth: number;         // 1–12 (Compound Index: orgId + fiscalYear + fiscalMonth)
@@ -88,6 +90,19 @@ export interface DailyLog {
   updatedAt: string;
   deletedAt?: string | null;   // Soft-delete timestamp for delta sync propagation
 }
+
+### 1.5.1 `categories` (Dynamic Workspace Custom Categories)
+```typescript
+export interface Category {
+  id: string;                  // UUID
+  orgId: string;               // FK -> organizations.id
+  name: string;                // Category title (e.g. "Office Equipment")
+  icon?: string;               // Lucide icon identifier
+  isSystem: boolean;           // Default built-in vs user-defined
+  createdAt: string;
+  updatedAt: string;
+}
+```
 ```
 
 ### 1.6 Client-Side Offline Models (Dexie.js / IndexedDB)

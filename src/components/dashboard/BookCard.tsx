@@ -3,7 +3,9 @@
 import React from "react";
 import Link from "next/link";
 import { BookOpen } from "lucide-react";
-import { formatCurrency, formatDate } from "@/lib/utils";
+import { formatCleanAmount, formatDate } from "@/lib/utils";
+import { useLiveQuery } from "dexie-react-hooks";
+import { localDb } from "@/lib/local-db";
 
 interface BookCardProps {
   id: string;
@@ -20,22 +22,79 @@ export default function BookCard({
   id,
   orgId,
   title,
+  category,
   totalSpent,
   updatedAt,
-  currency,
 }: BookCardProps) {
+  // Live query transactions for this book from local Dexie database
+  const bookLogs = useLiveQuery(
+    async () => {
+      return await localDb.dailyLogs
+        .where("expenseId")
+        .equals(id)
+        .toArray();
+    },
+    [id],
+    []
+  );
+
+  let netPaisa = 0;
+  let hasTransactions = false;
+
+  if (bookLogs && bookLogs.length > 0) {
+    hasTransactions = true;
+    for (const log of bookLogs) {
+      const isCashIn =
+        log.type === "in" ||
+        (log.type !== "out" &&
+          (log.note.toLowerCase().startsWith("[in]") ||
+            log.note.toLowerCase().includes("freelance") ||
+            log.note.toLowerCase().includes("salary") ||
+            log.note.toLowerCase().includes("client") ||
+            log.note.toLowerCase().includes("cash in") ||
+            log.note.toLowerCase().includes("income") ||
+            log.note.toLowerCase().includes("deposit")));
+
+      if (isCashIn) {
+        netPaisa += log.amountPaisa;
+      } else {
+        netPaisa -= log.amountPaisa;
+      }
+    }
+  }
+
+  // Fallback if no local logs yet (initial seeded mock state)
   const paisa =
     typeof totalSpent === "string"
       ? parseInt(totalSpent, 10) || 0
       : totalSpent;
 
-  // Format amount cleanly without unnecessary decimals if whole
-  const amountFormatted = formatCurrency(paisa / 100, currency);
+  const isIncomeFallback =
+    category?.toLowerCase() === "income" ||
+    category?.toLowerCase() === "revenue" ||
+    category?.toLowerCase() === "investment" ||
+    title.toLowerCase().includes("salary") ||
+    title.toLowerCase().includes("income") ||
+    title.toLowerCase().includes("freelance") ||
+    title.toLowerCase().includes("deposit") ||
+    title.toLowerCase().includes("savings");
+
+  // Determine final display values: positive = green (+), negative = red (-), 0 = neutral
+  const displayPaisa = hasTransactions
+    ? netPaisa
+    : isIncomeFallback
+    ? Math.abs(paisa)
+    : -Math.abs(paisa);
+
+  const isPositive = displayPaisa > 0;
+  const isZero = displayPaisa === 0;
+
+  const cleanAmount = formatCleanAmount(Math.abs(displayPaisa) / 100);
 
   return (
     <Link
       href={`/orgs/${orgId}/expenses/${id}`}
-      className="card-tap flex items-center justify-between p-4 bg-surface border border-border-default rounded-2xl transition-all shadow-sm group cursor-pointer block"
+      className="flex items-center justify-between p-3.5 sm:p-4 bg-surface rounded-[12px] transition-all group cursor-pointer block hover:bg-subtle active:scale-[0.99] border-0 shadow-none"
     >
       <div className="flex items-center gap-3.5 min-w-0 pr-2">
         {/* Blue Book Icon Box (Reference Matched) */}
@@ -54,9 +113,17 @@ export default function BookCard({
         </div>
       </div>
 
-      {/* Amount on Right */}
-      <div className="font-semibold text-sm sm:text-base text-right font-mono shrink-0 text-txt-main">
-        {amountFormatted}
+      {/* Amount with Color Hierarchy (+ green, - red, 0 neutral) */}
+      <div
+        className={`font-semibold text-sm sm:text-base text-right shrink-0 ${
+          isZero
+            ? "text-txt-muted"
+            : isPositive
+            ? "text-cash-in"
+            : "text-cash-out"
+        }`}
+      >
+        {isZero ? "0" : isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
       </div>
     </Link>
   );

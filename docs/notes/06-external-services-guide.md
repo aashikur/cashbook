@@ -11,6 +11,8 @@ Create a `.env.local` file in `application/`:
 ```env
 # Application Base URL
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
+# (Optional) Additional trusted origins for Better Auth (e.g., local LAN IP)
+BETTER_AUTH_TRUSTED_ORIGINS="http://192.168.1.105:3000"
 
 # 1. Neon Serverless PostgreSQL Database
 DATABASE_URL="postgresql://user:password@ep-sample-pooler.us-east-2.aws.neon.tech/cashbook?sslmode=require"
@@ -65,7 +67,7 @@ EMAIL_FROM="CashBook <notifications@yourdomain.com>"
    ```json
    [
      {
-       "AllowedOrigins": ["http://localhost:3000", "https://your-domain.com"],
+       "AllowedOrigins": ["http://localhost:3000", "http://192.168.1.105:3000", "https://your-domain.com"],
        "AllowedMethods": ["GET", "PUT", "HEAD"],
        "AllowedHeaders": ["*"],
        "MaxAgeSeconds": 3600

@@ -4,6 +4,8 @@ import { dailyLogs } from "@/db/schema";
 import { requireOrgMember } from "@/lib/auth-helpers";
 import { and, eq, isNull, desc } from "drizzle-orm";
 
+export const dynamic = "force-dynamic";
+
 type RouteProps = {
   params: Promise<{ orgId: string }>;
 };
@@ -19,6 +21,8 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
   const month = searchParams.get("month") ? parseInt(searchParams.get("month")!, 10) : undefined;
   const expenseId = searchParams.get("expenseId") || undefined;
   const date = searchParams.get("date") || undefined;
+  const category = searchParams.get("category") || undefined;
+  const type = searchParams.get("type") || undefined;
   const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "50", 10)));
   const offset = (page - 1) * limit;
@@ -32,6 +36,8 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
   if (month) conditions.push(eq(dailyLogs.fiscalMonth, month));
   if (expenseId) conditions.push(eq(dailyLogs.expenseId, expenseId));
   if (date) conditions.push(eq(dailyLogs.logDate, date));
+  if (category && category !== "All") conditions.push(eq(dailyLogs.category, category));
+  if (type === "in" || type === "out") conditions.push(eq(dailyLogs.type, type));
 
   const items = await db.query.dailyLogs.findMany({
     where: and(...conditions),

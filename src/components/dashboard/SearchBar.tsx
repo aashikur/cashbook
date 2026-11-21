@@ -20,7 +20,7 @@ export default function SearchBar({ value, onChange }: SearchBarProps) {
         placeholder="Search books"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-surface border border-border-default rounded-2xl pl-10 pr-10 py-3 text-xs text-txt-main placeholder:text-txt-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm"
+        className="w-full bg-surface border border-border-default rounded-2xl pl-10 pr-10 py-3 text-xs text-txt-main placeholder:text-txt-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-none"
       />
       <button
         type="button"

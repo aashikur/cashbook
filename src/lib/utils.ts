@@ -5,18 +5,32 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  BDT: "৳",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  INR: "₹",
+};
+
 export function formatCurrency(
   amount: number,
   currency = "BDT",
-  locale = "en-BD"
+  locale = "en-US"
 ): string {
-  // Use BDT symbol ৳ manually since Intl may not render it on all systems
   const formatted = Math.abs(amount).toLocaleString(locale, {
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
-  const symbol = currency === "BDT" ? "৳" : currency;
+  const symbol = CURRENCY_SYMBOLS[currency] || (currency === "BDT" ? "৳" : "$");
   return `${symbol}${formatted}`;
+}
+
+export function formatCleanAmount(amount: number): string {
+  return Math.abs(amount).toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
 }
 
 export function formatDate(dateString: string): string {

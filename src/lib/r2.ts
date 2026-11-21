@@ -12,7 +12,15 @@ const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || "";
 const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || "";
 const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || "";
 const R2_BUCKET_NAME = process.env.R2_BUCKET_NAME || "cashbook-receipts";
-const R2_PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN || ""; // e.g., https://media.yourcashbook.com
+
+function getPublicDomain(): string {
+  const domain = process.env.R2_PUBLIC_DOMAIN?.trim() || "";
+  if (!domain) return "";
+  if (!domain.startsWith("http://") && !domain.startsWith("https://")) {
+    return `https://${domain}`;
+  }
+  return domain;
+}
 
 export const r2Client = new S3Client({
   region: "auto",
@@ -64,8 +72,9 @@ export async function createPresignedUploadUrl({
     expiresIn: expiresInSeconds,
   });
 
-  const publicUrl = R2_PUBLIC_DOMAIN
-    ? `${R2_PUBLIC_DOMAIN.replace(/\/$/, "")}/${key}`
+  const domain = getPublicDomain();
+  const publicUrl = domain
+    ? `${domain.replace(/\/$/, "")}/${key}`
     : `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`;
 
   return {
@@ -73,6 +82,44 @@ export async function createPresignedUploadUrl({
     key,
     publicUrl,
   };
+}
+
+/**
+ * Server-side direct upload to R2 (used as seamless fallback if direct browser PUT is CORS-blocked).
+ */
+export async function uploadR2Object({
+  orgId,
+  fiscalYear,
+  fiscalMonth,
+  fileUuid,
+  mimeType,
+  buffer,
+}: {
+  orgId: string;
+  fiscalYear: number;
+  fiscalMonth: number;
+  fileUuid: string;
+  mimeType: string;
+  buffer: Buffer | Uint8Array;
+}): Promise<{ key: string; publicUrl: string }> {
+  const extension = mimeType === "application/pdf" ? "pdf" : "webp";
+  const key = `orgs/${orgId}/${fiscalYear}/${fiscalMonth}/${fileUuid}.${extension}`;
+
+  const command = new PutObjectCommand({
+    Bucket: R2_BUCKET_NAME,
+    Key: key,
+    Body: buffer,
+    ContentType: mimeType,
+  });
+
+  await r2Client.send(command);
+
+  const domain = getPublicDomain();
+  const publicUrl = domain
+    ? `${domain.replace(/\/$/, "")}/${key}`
+    : `https://${R2_BUCKET_NAME}.${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${key}`;
+
+  return { key, publicUrl };
 }
 
 /**

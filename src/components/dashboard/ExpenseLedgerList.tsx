@@ -67,7 +67,7 @@ export default function ExpenseLedgerList({
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-1">
           {expenses.map((expense) => (
             <BookCard
               key={expense.id}

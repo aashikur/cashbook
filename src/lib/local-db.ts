@@ -39,6 +39,8 @@ export type LocalDailyLog = {
   id: string;
   orgId: string;
   expenseId: string;
+  type: "in" | "out";
+  category: string;
   amountPaisa: number;
   note: string;
   logDate: string; // YYYY-MM-DD
@@ -70,21 +72,45 @@ export type SyncQueueItem = {
   createdAt: string;
 };
 
+export type LocalCategory = {
+  id: string;
+  orgId: string;
+  name: string;
+  icon: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 // ─── Dexie DB definition ───────────────────────────────────────────────────────
 
 class CashbookDatabase extends Dexie {
   expenses!: EntityTable<LocalExpense, "id">;
   dailyLogs!: EntityTable<LocalDailyLog, "id">;
+  categories!: EntityTable<LocalCategory, "id">;
   syncQueue!: EntityTable<SyncQueueItem, "id">;
 
   constructor() {
     super("cashbook_v2");
 
     this.version(1).stores({
-      // Compound indexes for fast fiscal browsing & delta sync
       expenses: "id, orgId, [orgId+isArchived], updatedAt",
       dailyLogs:
         "id, orgId, expenseId, logDate, [orgId+fiscalYear+fiscalMonth], [orgId+expenseId+logDate], [orgId+updatedAt], syncStatus",
+      syncQueue: "++id, entityType, entityId, orgId, createdAt",
+    });
+
+    this.version(2).stores({
+      expenses: "id, orgId, [orgId+isArchived], updatedAt",
+      dailyLogs:
+        "id, orgId, expenseId, type, category, logDate, [orgId+fiscalYear+fiscalMonth], [orgId+expenseId+logDate], [orgId+updatedAt], syncStatus",
+      syncQueue: "++id, entityType, entityId, orgId, createdAt",
+    });
+
+    this.version(3).stores({
+      expenses: "id, orgId, [orgId+isArchived], updatedAt",
+      dailyLogs:
+        "id, orgId, expenseId, type, category, logDate, [orgId+fiscalYear+fiscalMonth], [orgId+expenseId+logDate], [orgId+updatedAt], syncStatus",
+      categories: "id, orgId, name, updatedAt",
       syncQueue: "++id, entityType, entityId, orgId, createdAt",
     });
   }
