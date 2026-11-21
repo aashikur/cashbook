@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import BookCard from "./BookCard";
 import { useAppStore } from "@/store/app-store";
-import { BookOpen, LayoutGrid, List, Plus } from "lucide-react";
+import { ArrowUpDown, BookOpen, ChevronDown, LayoutGrid, List, Plus } from "lucide-react";
 
 export type BookSortOption = "updated" | "alphabetical" | "created";
 export type BookViewMode = "grid" | "list";
@@ -125,26 +125,29 @@ export default function ExpenseLedgerList({
             </button>
           </div>
 
-          {/* Compact Book Sort Filter */}
-          <select
-            value={sortOption}
-            onChange={(e) => handleSortChange(e.target.value as BookSortOption)}
-            className="bg-surface border border-border-default rounded-xl px-2.5 py-1.5 text-xs font-semibold text-txt-main shadow-2xs hover:bg-subtle focus:outline-none focus:border-primary cursor-pointer transition-colors"
-            title="Sort books by"
-          >
-            <option value="updated">Updated</option>
-            <option value="alphabetical">A - Z</option>
-            <option value="created">Created</option>
-          </select>
+          {/* Compact Book Sort Filter with Icon */}
+          <div className="flex items-center gap-1.5 bg-surface border border-border-default rounded-xl px-2.5 py-1.5 text-xs font-semibold text-txt-main shadow-2xs hover:bg-subtle transition-colors">
+            <ArrowUpDown size={13} className="text-txt-muted shrink-0" />
+            <select
+              value={sortOption}
+              onChange={(e) => handleSortChange(e.target.value as BookSortOption)}
+              className="bg-transparent text-xs font-semibold text-txt-main focus:outline-none cursor-pointer pr-1 appearance-none"
+              title="Sort books by"
+            >
+              <option value="updated">Updated</option>
+              <option value="alphabetical">A - Z</option>
+              <option value="created">Created</option>
+            </select>
+            <ChevronDown size={11} className="text-txt-muted shrink-0 pointer-events-none" />
+          </div>
 
           {activeOrg?.role === "admin" && (
             <button
               onClick={() => setAddExpenseOpen(true)}
-              className="btn-pill-primary cursor-pointer active:scale-95 transition-transform"
+              className="btn-pill-primary cursor-pointer active:scale-95 transition-transform flex items-center gap-1 py-1.5 px-3 shrink-0 whitespace-nowrap"
             >
               <Plus size={15} />
-              <span className="hidden sm:inline">Add New Book</span>
-              <span className="sm:hidden">Add Book</span>
+              <span>Add</span>
             </button>
           )}
         </div>
