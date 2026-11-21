@@ -3,9 +3,10 @@
 import React, { useState, useMemo } from "react";
 import BookCard from "./BookCard";
 import { useAppStore } from "@/store/app-store";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, LayoutGrid, List, Plus } from "lucide-react";
 
 export type BookSortOption = "updated" | "alphabetical" | "created";
+export type BookViewMode = "grid" | "list";
 
 export interface ExpenseItem {
   id: string;
@@ -39,10 +40,28 @@ export default function ExpenseLedgerList({
     return "updated";
   });
 
+  // Persist user view mode (grid vs compact list) in localStorage
+  const [viewMode, setViewMode] = useState<BookViewMode>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cashbook_book_view") as BookViewMode;
+      if (saved === "grid" || saved === "list") {
+        return saved;
+      }
+    }
+    return "grid";
+  });
+
   function handleSortChange(option: BookSortOption) {
     setSortOption(option);
     if (typeof window !== "undefined") {
       localStorage.setItem("cashbook_book_sort", option);
+    }
+  }
+
+  function handleViewModeChange(mode: BookViewMode) {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cashbook_book_view", mode);
     }
   }
 
@@ -71,13 +90,41 @@ export default function ExpenseLedgerList({
 
   return (
     <div className="flex flex-col gap-3">
-      {/* Section Header with Sort Selector & Add Book */}
-      <div className="flex items-center justify-between px-0.5 pt-1 gap-2">
+      {/* Section Header with View Toggle, Sort Selector & Add Book */}
+      <div className="flex items-center justify-between px-0.5 pt-1 gap-1.5 sm:gap-2">
         <h2 className="text-xl font-bold text-txt-main tracking-tight">
           Your books
         </h2>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* View Mode Toggle: Grid vs Compact List */}
+          <div className="flex items-center bg-surface border border-border-default rounded-xl p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={() => handleViewModeChange("grid")}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewMode === "grid"
+                  ? "bg-primary text-white shadow-xs"
+                  : "text-txt-muted hover:text-txt-main hover:bg-subtle"
+              }`}
+              title="Card view (Spacious)"
+            >
+              <LayoutGrid size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewModeChange("list")}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewMode === "list"
+                  ? "bg-primary text-white shadow-xs"
+                  : "text-txt-muted hover:text-txt-main hover:bg-subtle"
+              }`}
+              title="Compact list view (High density)"
+            >
+              <List size={14} />
+            </button>
+          </div>
+
           {/* Compact Book Sort Filter */}
           <select
             value={sortOption}
@@ -96,14 +143,14 @@ export default function ExpenseLedgerList({
               className="btn-pill-primary cursor-pointer active:scale-95 transition-transform"
             >
               <Plus size={15} />
-              <span className="hidden sm:inline">+ Add New Book</span>
-              <span className="sm:hidden">+ Add Book</span>
+              <span className="hidden sm:inline">Add New Book</span>
+              <span className="sm:hidden">Add Book</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Book Cards */}
+      {/* Book Cards / List */}
       {sortedExpenses.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 bg-surface border border-dashed border-border-default rounded-3xl text-center gap-3 my-2 shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-primary-light text-primary flex items-center justify-center">
@@ -126,7 +173,7 @@ export default function ExpenseLedgerList({
           )}
         </div>
       ) : (
-        <div className="flex flex-col gap-1">
+        <div className={viewMode === "list" ? "flex flex-col gap-0.5" : "flex flex-col gap-1"}>
           {sortedExpenses.map((expense) => (
             <BookCard
               key={expense.id}
@@ -138,6 +185,7 @@ export default function ExpenseLedgerList({
               logCount={expense.logCount}
               updatedAt={expense.updatedAt}
               currency={currency}
+              viewMode={viewMode}
             />
           ))}
         </div>

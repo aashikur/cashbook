@@ -16,6 +16,7 @@ interface BookCardProps {
   logCount: number;
   updatedAt: string;
   currency: string;
+  viewMode?: "grid" | "list";
 }
 
 export default function BookCard({
@@ -25,6 +26,7 @@ export default function BookCard({
   category,
   totalSpent,
   updatedAt,
+  viewMode = "grid",
 }: BookCardProps) {
   // Live query transactions for this book from local Dexie database
   const bookLogs = useLiveQuery(
@@ -91,6 +93,42 @@ export default function BookCard({
 
   const cleanAmount = formatCleanAmount(Math.abs(displayPaisa) / 100);
 
+  // Compact High-Density List View (25-30 items per screen without scrolling)
+  if (viewMode === "list") {
+    return (
+      <Link
+        href={`/orgs/${orgId}/expenses/${id}`}
+        className="flex items-center justify-between py-1.5 px-3 bg-surface rounded-xl transition-all group cursor-pointer hover:bg-subtle active:scale-[0.99] border-0 shadow-none min-h-[34px]"
+      >
+        <div className="flex items-center gap-2.5 min-w-0 pr-2">
+          {/* Compact Book Icon */}
+          <div className="w-6 h-6 rounded-lg bg-primary-light text-primary flex items-center justify-center shrink-0 border border-primary-border/60">
+            <BookOpen size={12} />
+          </div>
+
+          {/* Compact Book Title */}
+          <span className="text-xs font-semibold text-txt-main group-hover:text-primary transition-colors truncate">
+            {title}
+          </span>
+        </div>
+
+        {/* Compact Balance */}
+        <div
+          className={`font-semibold text-xs text-right shrink-0 ${
+            isZero
+              ? "text-txt-muted"
+              : isPositive
+              ? "text-cash-in"
+              : "text-cash-out"
+          }`}
+        >
+          {isZero ? "0" : isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
+        </div>
+      </Link>
+    );
+  }
+
+  // Spacious Card / Grid View (Default)
   return (
     <Link
       href={`/orgs/${orgId}/expenses/${id}`}
