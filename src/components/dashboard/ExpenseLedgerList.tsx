@@ -85,9 +85,9 @@ export default function ExpenseLedgerList({
             className="bg-surface border border-border-default rounded-xl px-2.5 py-1.5 text-xs font-semibold text-txt-main shadow-2xs hover:bg-subtle focus:outline-none focus:border-primary cursor-pointer transition-colors"
             title="Sort books by"
           >
-            <option value="updated">⚡ Updated</option>
-            <option value="alphabetical">🔤 A - Z</option>
-            <option value="created">🕒 Created</option>
+            <option value="updated">Updated</option>
+            <option value="alphabetical">A - Z</option>
+            <option value="created">Created</option>
           </select>
 
           {activeOrg?.role === "admin" && (
