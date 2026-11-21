@@ -143,7 +143,7 @@ export default function DashboardPage() {
             <div className="h-6 w-28 bg-slate-200 dark:bg-slate-700 rounded-lg" />
             <div className="flex items-center gap-1.5 sm:gap-2">
               <div className="h-8 w-16 bg-surface border border-border-default rounded-xl" />
-              <div className="h-8 w-24 bg-surface border border-border-default rounded-xl" />
+              <div className="w-8 h-8 bg-surface border border-border-default rounded-xl shrink-0" />
               <div className="h-8 w-16 bg-primary/30 rounded-full" />
             </div>
           </div>

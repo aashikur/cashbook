@@ -3,7 +3,7 @@
 import React, { useState, useMemo } from "react";
 import BookCard from "./BookCard";
 import { useAppStore } from "@/store/app-store";
-import { ArrowUpDown, BookOpen, ChevronDown, LayoutGrid, List, Plus } from "lucide-react";
+import { BookOpen, Check, Filter, LayoutGrid, List, Plus } from "lucide-react";
 
 export type BookSortOption = "updated" | "alphabetical" | "created";
 export type BookViewMode = "grid" | "list";
@@ -50,6 +50,8 @@ export default function ExpenseLedgerList({
     }
     return "grid";
   });
+
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   function handleSortChange(option: BookSortOption) {
     setSortOption(option);
@@ -125,20 +127,90 @@ export default function ExpenseLedgerList({
             </button>
           </div>
 
-          {/* Compact Book Sort Filter with Icon */}
-          <div className="flex items-center gap-1.5 bg-surface border border-border-default rounded-xl px-2.5 py-1.5 text-xs font-semibold text-txt-main shadow-2xs hover:bg-subtle transition-colors">
-            <ArrowUpDown size={13} className="text-txt-muted shrink-0" />
-            <select
-              value={sortOption}
-              onChange={(e) => handleSortChange(e.target.value as BookSortOption)}
-              className="bg-transparent text-xs font-semibold text-txt-main focus:outline-none cursor-pointer pr-1 appearance-none"
-              title="Sort books by"
+          {/* Filter Popover Button (Only Icon, matching reference image) */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsFilterOpen((prev) => !prev)}
+              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center ${
+                isFilterOpen || sortOption !== "updated"
+                  ? "bg-primary-light text-primary border-primary-border shadow-2xs"
+                  : "bg-surface text-txt-main border-border-default hover:bg-subtle shadow-2xs"
+              }`}
+              title="Filter & sort books"
             >
-              <option value="updated">Updated</option>
-              <option value="alphabetical">A - Z</option>
-              <option value="created">Created</option>
-            </select>
-            <ChevronDown size={11} className="text-txt-muted shrink-0 pointer-events-none" />
+              <Filter size={15} />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isFilterOpen && (
+              <>
+                {/* Backdrop to close on tap/click outside */}
+                <div
+                  className="fixed inset-0 z-30"
+                  onClick={() => setIsFilterOpen(false)}
+                />
+
+                <div className="absolute right-0 top-full mt-1.5 z-40 w-44 bg-surface border border-border-default rounded-2xl shadow-xl p-1.5 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-0.5">
+                  <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-txt-muted">
+                    Sort books by
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleSortChange("updated");
+                      setIsFilterOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                      sortOption === "updated"
+                        ? "bg-primary-light text-primary font-bold"
+                        : "text-txt-main hover:bg-subtle"
+                    }`}
+                  >
+                    <span>Updated</span>
+                    {sortOption === "updated" && (
+                      <Check size={14} className="stroke-[2.5]" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleSortChange("alphabetical");
+                      setIsFilterOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                      sortOption === "alphabetical"
+                        ? "bg-primary-light text-primary font-bold"
+                        : "text-txt-main hover:bg-subtle"
+                    }`}
+                  >
+                    <span>A - Z</span>
+                    {sortOption === "alphabetical" && (
+                      <Check size={14} className="stroke-[2.5]" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleSortChange("created");
+                      setIsFilterOpen(false);
+                    }}
+                    className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
+                      sortOption === "created"
+                        ? "bg-primary-light text-primary font-bold"
+                        : "text-txt-main hover:bg-subtle"
+                    }`}
+                  >
+                    <span>Created</span>
+                    {sortOption === "created" && (
+                      <Check size={14} className="stroke-[2.5]" />
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {activeOrg?.role === "admin" && (
