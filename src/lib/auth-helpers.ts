@@ -48,14 +48,24 @@ export async function getSessionContext(): Promise<
     // Session retrieval fallback
   }
 
-  // Fallback to Demo User (Alex Romanov) so UI is immediately populated with mock data
+  // If allow dev mock auth is explicitly enabled for offline seed testing
+  if (process.env.ALLOW_DEV_MOCK_AUTH === "true" && process.env.NODE_ENV !== "production") {
+    return {
+      success: true,
+      context: {
+        userId: "user_alex_romanov",
+        userEmail: "alex.romanov@example.com",
+        userName: "Alex Romanov",
+      },
+    };
+  }
+
   return {
-    success: true,
-    context: {
-      userId: "user_alex_romanov",
-      userEmail: "alex.romanov@example.com",
-      userName: "Alex Romanov",
-    },
+    success: false,
+    response: NextResponse.json(
+      { success: false, error: "Unauthorized. Please sign in." },
+      { status: 401 }
+    ),
   };
 }
 

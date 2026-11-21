@@ -33,6 +33,11 @@ export default function CreateOrgModal() {
       });
 
       const data = await res.json();
+      if (res.status === 401) {
+        setError("Your session has expired. Please sign in again.");
+        window.location.href = "/sign-in";
+        return;
+      }
       if (!res.ok) {
         setError(data.error || "Failed to create organization");
         return;

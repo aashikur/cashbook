@@ -1,36 +1,69 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = [
+// Public endpoints and health checks accessible without authentication
+const PUBLIC_PREFIXES = [
+  "/api/auth",   // Better Auth authentication handlers
+  "/api/health", // Health check API
+  "/health",     // Health status UI
+];
+
+// Auth pages for visitors who are NOT logged in
+const AUTH_ROUTES = [
   "/sign-in",
   "/sign-up",
-  "/api/auth",
-  "/dashboard",
-  "/orgs",
-  "/api/v1",
-  "/api/health",
-  "/health",
 ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Root redirect to dashboard
-  if (pathname === "/") {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
-
-  // Allow public and demo paths
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  // 1. Allow public API and health routes
+  if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
   }
 
-  // Check session cookie set by Better Auth
+  // 2. Check Better Auth session token cookie (HTTP in dev, Secure in production)
   const sessionToken =
     request.cookies.get("better-auth.session_token")?.value ??
     request.cookies.get("__Secure-better-auth.session_token")?.value;
 
-  if (!sessionToken) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  const isAuthenticated = Boolean(sessionToken);
+
+  // 3. Handle Root "/"
+  if (pathname === "/") {
+    const target = isAuthenticated ? "/dashboard" : "/sign-in";
+    return NextResponse.redirect(new URL(target, request.url));
+  }
+
+  // 4. Handle Auth Pages (/sign-in, /sign-up)
+  const isAuthRoute = AUTH_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`)
+  );
+  if (isAuthRoute) {
+    // If already logged in, redirect away from sign-in/sign-up to dashboard
+    if (isAuthenticated) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 5. Protect API routes (/api/v1/*)
+  if (pathname.startsWith("/api/")) {
+    if (!isAuthenticated) {
+      return NextResponse.json(
+        { success: false, error: "Unauthorized. Please sign in." },
+        { status: 401 }
+      );
+    }
+    return NextResponse.next();
+  }
+
+  // 6. Protect All App Pages (/dashboard, /orgs, etc.)
+  if (!isAuthenticated) {
+    const signInUrl = new URL("/sign-in", request.url);
+    if (pathname !== "/dashboard") {
+      signInUrl.searchParams.set("callbackUrl", pathname);
+    }
+    return NextResponse.redirect(signInUrl);
   }
 
   return NextResponse.next();

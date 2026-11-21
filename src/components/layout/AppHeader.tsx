@@ -52,6 +52,10 @@ export default function AppHeader() {
     async function loadOrgs() {
       try {
         const res = await fetch("/api/v1/orgs");
+        if (res.status === 401) {
+          router.push("/sign-in");
+          return;
+        }
         if (res.ok && !cancelled) {
           const { data } = await res.json();
           setOrgs(data || []);
@@ -81,7 +85,7 @@ export default function AppHeader() {
     return () => {
       cancelled = true;
     };
-  }, [setActiveOrg, setIsOrgsLoading, setOrgs]);
+  }, [router, setActiveOrg, setIsOrgsLoading, setOrgs]);
 
   async function handleLogout() {
     await signOut();
