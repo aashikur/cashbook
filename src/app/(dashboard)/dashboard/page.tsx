@@ -14,7 +14,8 @@ import { useAppStore } from "@/store/app-store";
 import { localDb } from "@/lib/local-db";
 import { performDeltaSync } from "@/lib/sync-service";
 import { useLiveQuery } from "dexie-react-hooks";
-import { BookOpen, Plus } from "lucide-react";
+import { BookOpen, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { activeOrg, setOrgSwitcherOpen, isOrgsLoading } = useAppStore();
@@ -58,6 +59,60 @@ export default function DashboardPage() {
       e.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [localExpenses, searchQuery]);
+
+  // 3. Query all workspace logs to compute total balance across all books
+  const allWorkspaceLogs = useLiveQuery(
+    async () => {
+      if (!activeOrg) return [];
+      return await localDb.dailyLogs
+        .where("orgId")
+        .equals(activeOrg.id)
+        .toArray();
+    },
+    [activeOrg?.id],
+    []
+  );
+
+  const totalBalancePaisa = useMemo(() => {
+    if (allWorkspaceLogs && allWorkspaceLogs.length > 0) {
+      let net = 0;
+      for (const log of allWorkspaceLogs) {
+        const isCashIn =
+          log.type === "in" ||
+          (log.type !== "out" &&
+            (log.note.toLowerCase().startsWith("[in]") ||
+              log.note.toLowerCase().includes("freelance") ||
+              log.note.toLowerCase().includes("salary") ||
+              log.note.toLowerCase().includes("income") ||
+              log.note.toLowerCase().includes("cash in")));
+        if (isCashIn) {
+          net += log.amountPaisa;
+        } else {
+          net -= log.amountPaisa;
+        }
+      }
+      return net;
+    }
+
+    if (localExpenses && localExpenses.length > 0) {
+      return localExpenses.reduce((acc, exp) => {
+        const spent =
+          typeof exp.totalSpent === "string"
+            ? parseInt(exp.totalSpent, 10) || 0
+            : exp.totalSpent;
+        const isIncomeFallback =
+          exp.category?.toLowerCase() === "income" ||
+          exp.category?.toLowerCase() === "revenue" ||
+          exp.title.toLowerCase().includes("salary") ||
+          exp.title.toLowerCase().includes("income");
+        return acc + (isIncomeFallback ? Math.abs(spent) : -Math.abs(spent));
+      }, 0);
+    }
+
+    return 0;
+  }, [allWorkspaceLogs, localExpenses]);
+
+  const currency = activeOrg?.currency || "BDT";
 
   // Loading skeleton during hydration or while initial organization is loading
   if (!mounted || (isOrgsLoading && !activeOrg)) {
@@ -115,6 +170,40 @@ export default function DashboardPage() {
       <AppHeader />
 
       <main className="max-w-md mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
+        {/* Workspace Total Balance Executive Card */}
+        <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-blue-500/15 bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 transition-all">
+          {/* Ambient decorative blurred lighting */}
+          <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
+          <div className="absolute right-12 -top-8 w-24 h-24 rounded-full bg-white/10 blur-lg pointer-events-none" />
+
+          {/* Top Row: Current Balance label + Books Count + Trending Icon */}
+          <div className="flex items-center justify-between mb-1.5 relative z-10">
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-medium text-white/80">
+                Current Balance
+              </span>
+              {localExpenses && localExpenses.length > 0 && (
+                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-semibold text-white backdrop-blur-xs">
+                  {localExpenses.length} {localExpenses.length === 1 ? "book" : "books"}
+                </span>
+              )}
+            </div>
+            <div className="p-2 rounded-full bg-white/15 backdrop-blur-xs text-white">
+              {totalBalancePaisa >= 0 ? (
+                <TrendingUp size={20} className="stroke-[2.5]" />
+              ) : (
+                <TrendingDown size={20} className="stroke-[2.5]" />
+              )}
+            </div>
+          </div>
+
+          {/* Middle: Big Balance Display */}
+          <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-sans my-1 text-white relative z-10">
+            {totalBalancePaisa < 0 ? "-" : ""}
+            {formatCurrency(Math.abs(totalBalancePaisa) / 100, currency)}
+          </div>
+        </div>
+
         {/* Search Bar (Screen 1 Reference) */}
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
 

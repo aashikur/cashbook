@@ -411,7 +411,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
       <main className="max-w-md mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
         {/* Top Single Card (Modern Royal Blue Gradient, Matching Image 2) */}
-        <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-blue-500/15 bg-gradient-to-br from-blue-600 via-blue-600 to-indigo-700 transition-all">
+        <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-blue-500/15 bg-linear-to-br from-blue-600 via-blue-500 to-blue-600 transition-all">
           {/* Decorative ambient blurred circles */}
           <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
           <div className="absolute right-12 -top-8 w-24 h-24 rounded-full bg-white/10 blur-lg pointer-events-none" />

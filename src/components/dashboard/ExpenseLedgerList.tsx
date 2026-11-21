@@ -1,9 +1,11 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import BookCard from "./BookCard";
 import { useAppStore } from "@/store/app-store";
 import { BookOpen, Plus } from "lucide-react";
+
+export type BookSortOption = "updated" | "alphabetical" | "created";
 
 export interface ExpenseItem {
   id: string;
@@ -13,6 +15,7 @@ export interface ExpenseItem {
   totalSpent: number | string;
   logCount: number;
   updatedAt: string;
+  createdAt?: string;
 }
 
 interface ExpenseLedgerListProps {
@@ -25,27 +28,83 @@ export default function ExpenseLedgerList({
   const { activeOrg, setAddExpenseOpen } = useAppStore();
   const currency = activeOrg?.currency || "BDT";
 
+  // Persist user sort preference in localStorage
+  const [sortOption, setSortOption] = useState<BookSortOption>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cashbook_book_sort") as BookSortOption;
+      if (saved === "updated" || saved === "alphabetical" || saved === "created") {
+        return saved;
+      }
+    }
+    return "updated";
+  });
+
+  function handleSortChange(option: BookSortOption) {
+    setSortOption(option);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cashbook_book_sort", option);
+    }
+  }
+
+  // Reactive sorted expenses list based on user selection
+  const sortedExpenses = useMemo(() => {
+    const list = [...expenses];
+    if (sortOption === "alphabetical") {
+      return list.sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+      );
+    }
+    if (sortOption === "created") {
+      return list.sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.updatedAt || 0).getTime();
+        const timeB = new Date(b.createdAt || b.updatedAt || 0).getTime();
+        return timeB - timeA;
+      });
+    }
+    // Default: "updated" (recently active first)
+    return list.sort((a, b) => {
+      const timeA = new Date(a.updatedAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [expenses, sortOption]);
+
   return (
     <div className="flex flex-col gap-3">
-      {/* Section Header (Screen 1 Reference) */}
-      <div className="flex items-center justify-between px-0.5 pt-1">
+      {/* Section Header with Sort Selector & Add Book */}
+      <div className="flex items-center justify-between px-0.5 pt-1 gap-2">
         <h2 className="text-xl font-bold text-txt-main tracking-tight">
           Your books
         </h2>
 
-        {activeOrg?.role === "admin" && (
-          <button
-            onClick={() => setAddExpenseOpen(true)}
-            className="btn-pill-primary cursor-pointer active:scale-95 transition-transform"
+        <div className="flex items-center gap-2">
+          {/* Compact Book Sort Filter */}
+          <select
+            value={sortOption}
+            onChange={(e) => handleSortChange(e.target.value as BookSortOption)}
+            className="bg-surface border border-border-default rounded-xl px-2.5 py-1.5 text-xs font-semibold text-txt-main shadow-2xs hover:bg-subtle focus:outline-none focus:border-primary cursor-pointer transition-colors"
+            title="Sort books by"
           >
-            <Plus size={15} />
-            <span>+ Add New Book</span>
-          </button>
-        )}
+            <option value="updated">⚡ Updated</option>
+            <option value="alphabetical">🔤 A - Z</option>
+            <option value="created">🕒 Created</option>
+          </select>
+
+          {activeOrg?.role === "admin" && (
+            <button
+              onClick={() => setAddExpenseOpen(true)}
+              className="btn-pill-primary cursor-pointer active:scale-95 transition-transform"
+            >
+              <Plus size={15} />
+              <span className="hidden sm:inline">+ Add New Book</span>
+              <span className="sm:hidden">+ Add Book</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Book Cards */}
-      {expenses.length === 0 ? (
+      {sortedExpenses.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 bg-surface border border-dashed border-border-default rounded-3xl text-center gap-3 my-2 shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-primary-light text-primary flex items-center justify-center">
             <BookOpen size={22} />
@@ -68,7 +127,7 @@ export default function ExpenseLedgerList({
         </div>
       ) : (
         <div className="flex flex-col gap-1">
-          {expenses.map((expense) => (
+          {sortedExpenses.map((expense) => (
             <BookCard
               key={expense.id}
               id={expense.id}
