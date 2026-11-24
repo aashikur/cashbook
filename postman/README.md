@@ -33,6 +33,7 @@ The collection comes pre-configured with the following variables:
 | Module | Method | Endpoint | Access Role | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **System** | `GET` | `/api/health` | Public | Server & Neon DB health check |
+| **Super Admin** | `GET` | `/api/v1/admin/overview` | Super Admin | Platform telemetry, metrics, users directory & org mapping |
 | **Auth** | `GET` | `/api/auth/get-session` | Authenticated | Retrieves current user session |
 | **Auth** | `POST` | `/api/auth/sign-in/email` | Public | Sign in with email and password |
 | **Auth** | `POST` | `/api/auth/sign-up/email` | Public | Create new account |

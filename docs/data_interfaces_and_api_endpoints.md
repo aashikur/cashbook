@@ -218,3 +218,8 @@ All `/api/v1/orgs/:orgId/*` routes validate the user's session cookie/Bearer tok
 | `POST` | `/api/v1/orgs/:orgId/uploads/presign` | Admin | `{ fileName, mimeType, sizeBytes, fiscalYear, fiscalMonth }` | Returns `{ uploadUrl, key, publicUrl }` for direct client PUT to Cloudflare R2 |
 | `DELETE` | `/api/v1/orgs/:orgId/uploads` | Admin | `{ key }` | Deletes orphaned/removed receipt object from Cloudflare R2 |
 | `GET` | `/api/v1/orgs/:orgId/reports/summary` | Admin / Viewer | `?year=2026` (or `?fromYear=2015&toYear=2026`) | Returns aggregated monthly & per-expense totals for charts/exports |
+
+### 3.7 Platform Super Admin Telemetry & Console
+| Method | Endpoint | Access | Request / Query Params | Response / Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/admin/overview` | Super Admin (`mdaashikur@gmail.com`) | — | Returns platform metrics (total users, orgs, books, logs), full user directory, and workspace book mappings |

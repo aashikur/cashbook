@@ -63,6 +63,29 @@
               "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2026-11-21T18:00:00.000Z\"\n}"
             }
           ]
+        },
+        {
+          "name": "Super Admin Platform Overview",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/admin/overview",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "overview"]
+            },
+            "description": "Platform telemetry and users directory for Super Admin (mdaashikur@gmail.com)."
+          },
+          "response": [
+            {
+              "name": "200 Platform Telemetry",
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"metrics\": {\n      \"totalUsers\": 5,\n      \"totalOrganizations\": 4,\n      \"totalBooks\": 8,\n      \"totalTransactions\": 24\n    },\n    \"users\": [],\n    \"organizations\": []\n  }\n}"
+            }
+          ]
         }
       ]
     },
