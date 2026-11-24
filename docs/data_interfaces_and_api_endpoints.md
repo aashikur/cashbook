@@ -26,6 +26,9 @@ export interface Organization {
   description?: string;
   currency: string;            // ISO 4217 code (e.g., "BDT", "USD")
   ownerId: string;             // FK -> users.id
+  updatedBy?: string;          // FK -> users.id
+  ownerName?: string;          // Denormalized/joined display name
+  updatedByName?: string;      // Denormalized/joined display name
   createdAt: string;
   updatedAt: string;
 }
@@ -59,6 +62,9 @@ export interface Expense {
   logCount: number;            // Running count of active daily_logs
   isArchived: boolean;         // Soft-delete flag to preserve 15-year history
   createdBy: string;           // FK -> users.id
+  createdByName?: string;      // Denormalized/joined display name
+  updatedBy?: string;          // FK -> users.id
+  updatedByName?: string;      // Denormalized/joined display name
   createdAt: string;
   updatedAt: string;
 }
@@ -86,6 +92,9 @@ export interface DailyLog {
   fiscalMonth: number;         // 1–12 (Compound Index: orgId + fiscalYear + fiscalMonth)
   attachments: R2Attachment[]; // Cloudflare R2 references
   loggedBy: string;            // FK -> users.id
+  loggedByName?: string;       // Denormalized/joined display name
+  updatedBy?: string;          // FK -> users.id
+  updatedByName?: string;      // Denormalized/joined display name
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;   // Soft-delete timestamp for delta sync propagation

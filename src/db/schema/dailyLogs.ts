@@ -54,6 +54,7 @@ export const dailyLogs = pgTable(
     loggedBy: text("logged_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
     deletedAt: timestamp("deleted_at"), // soft-delete for delta sync
@@ -92,6 +93,10 @@ export const dailyLogsRelations = relations(dailyLogs, ({ one }) => ({
   }),
   loggedByUser: one(user, {
     fields: [dailyLogs.loggedBy],
+    references: [user.id],
+  }),
+  updatedByUser: one(user, {
+    fields: [dailyLogs.updatedBy],
     references: [user.id],
   }),
 }));

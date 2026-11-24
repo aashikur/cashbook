@@ -35,6 +35,7 @@ export const organizations = pgTable("organizations", {
   ownerId: text("owner_id")
     .notNull()
     .references(() => user.id, { onDelete: "restrict" }),
+  updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -69,6 +70,7 @@ export const orgMembers = pgTable(
 
 export const organizationsRelations = relations(organizations, ({ one, many }) => ({
   owner: one(user, { fields: [organizations.ownerId], references: [user.id] }),
+  updatedByUser: one(user, { fields: [organizations.updatedBy], references: [user.id] }),
   members: many(orgMembers),
 }));
 

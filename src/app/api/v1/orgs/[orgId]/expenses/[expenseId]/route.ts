@@ -25,6 +25,14 @@ export async function GET(_req: NextRequest, { params }: RouteProps) {
 
   const expense = await db.query.expenses.findFirst({
     where: and(eq(expenses.id, expenseId), eq(expenses.orgId, orgId)),
+    with: {
+      createdByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+      updatedByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+    },
   });
 
   if (!expense) {
@@ -34,7 +42,13 @@ export async function GET(_req: NextRequest, { params }: RouteProps) {
     );
   }
 
-  return NextResponse.json({ success: true, data: expense });
+  const enriched = {
+    ...expense,
+    createdByName: expense.createdByUser?.name || expense.createdByUser?.email || null,
+    updatedByName: expense.updatedByUser?.name || expense.updatedByUser?.email || null,
+  };
+
+  return NextResponse.json({ success: true, data: enriched });
 }
 
 // PATCH /api/v1/orgs/:orgId/expenses/:expenseId (Admin only)
@@ -51,6 +65,7 @@ export async function PATCH(req: NextRequest, { params }: RouteProps) {
       .update(expenses)
       .set({
         ...validated,
+        updatedBy: authRes.context.userId,
         updatedAt: new Date(),
       })
       .where(and(eq(expenses.id, expenseId), eq(expenses.orgId, orgId)))

@@ -44,6 +44,12 @@ export async function GET(_req: NextRequest, { params }: RouteProps) {
     ),
     with: {
       expense: true,
+      loggedByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+      updatedByUser: {
+        columns: { id: true, name: true, email: true },
+      },
     },
   });
 
@@ -51,7 +57,13 @@ export async function GET(_req: NextRequest, { params }: RouteProps) {
     return NextResponse.json({ success: false, error: "Log not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ success: true, data: log });
+  const enriched = {
+    ...log,
+    loggedByName: log.loggedByUser?.name || log.loggedByUser?.email || null,
+    updatedByName: log.updatedByUser?.name || log.updatedByUser?.email || null,
+  };
+
+  return NextResponse.json({ success: true, data: enriched });
 }
 
 // PATCH /api/v1/orgs/:orgId/logs/:logId (Admin only)
@@ -108,6 +120,7 @@ export async function PATCH(req: NextRequest, { params }: RouteProps) {
         fiscalMonth: newFiscalMonth,
         expenseId: validated.expenseId ?? existingLog.expenseId,
         attachments: validated.attachments ?? existingLog.attachments,
+        updatedBy: authRes.context.userId,
         updatedAt: now,
       })
       .where(eq(dailyLogs.id, logId))

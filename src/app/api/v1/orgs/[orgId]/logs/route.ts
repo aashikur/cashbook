@@ -49,16 +49,36 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
           category: true,
         },
       },
+      loggedByUser: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      updatedByUser: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
     },
     orderBy: [desc(dailyLogs.logDate), desc(dailyLogs.createdAt)],
     limit,
     offset,
   });
 
+  const enrichedItems = items.map((log) => ({
+    ...log,
+    loggedByName: log.loggedByUser?.name || log.loggedByUser?.email || null,
+    updatedByName: log.updatedByUser?.name || log.updatedByUser?.email || null,
+  }));
+
   return NextResponse.json({
     success: true,
     data: {
-      items,
+      items: enrichedItems,
       page,
       limit,
       hasMore: items.length === limit,

@@ -24,14 +24,42 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
   const serverTimestamp = new Date().toISOString();
 
   // Query expenses updated since timestamp
-  const updatedExpenses = await db.query.expenses.findMany({
+  const updatedExpensesRaw = await db.query.expenses.findMany({
     where: and(eq(expenses.orgId, orgId), gt(expenses.updatedAt, sinceDate)),
+    with: {
+      createdByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+      updatedByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+    },
   });
 
+  const updatedExpenses = updatedExpensesRaw.map((e) => ({
+    ...e,
+    createdByName: e.createdByUser?.name || e.createdByUser?.email || null,
+    updatedByName: e.updatedByUser?.name || e.updatedByUser?.email || null,
+  }));
+
   // Query daily logs updated since timestamp (includes soft-deleted items with deletedAt so mobile client deletes them)
-  const updatedLogs = await db.query.dailyLogs.findMany({
+  const updatedLogsRaw = await db.query.dailyLogs.findMany({
     where: and(eq(dailyLogs.orgId, orgId), gt(dailyLogs.updatedAt, sinceDate)),
+    with: {
+      loggedByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+      updatedByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+    },
   });
+
+  const updatedLogs = updatedLogsRaw.map((l) => ({
+    ...l,
+    loggedByName: l.loggedByUser?.name || l.loggedByUser?.email || null,
+    updatedByName: l.updatedByUser?.name || l.updatedByUser?.email || null,
+  }));
 
   return NextResponse.json({
     success: true,

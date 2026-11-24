@@ -22,6 +22,9 @@ export type LocalExpense = {
   logCount: number;
   isArchived: boolean;
   createdBy: string;
+  createdByName?: string;
+  updatedBy?: string;
+  updatedByName?: string;
   createdAt: string;
   updatedAt: string;
   syncStatus: SyncStatus;
@@ -53,6 +56,9 @@ export type LocalDailyLog = {
     sizeBytes: number;
   }>;
   loggedBy: string;
+  loggedByName?: string;
+  updatedBy?: string;
+  updatedByName?: string;
   createdAt: string;
   updatedAt: string;
   deletedAt?: string | null;

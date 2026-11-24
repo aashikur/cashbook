@@ -16,6 +16,9 @@ interface BookCardProps {
   totalSpent: number | string;
   logCount: number;
   updatedAt: string;
+  createdAt?: string;
+  createdByName?: string;
+  updatedByName?: string;
   currency: string;
   viewMode?: "grid" | "list";
 }
@@ -27,6 +30,7 @@ export default function BookCard({
   category,
   totalSpent,
   updatedAt,
+  createdByName,
   viewMode = "grid",
 }: BookCardProps) {
   // Live query transactions for this book from local Dexie database
@@ -182,7 +186,7 @@ export default function BookCard({
             {title}
           </h4>
           <p className="text-[11px] text-txt-muted mt-0.5 truncate">
-            Updated on {formatDate(updatedAt).split(",")[0] || "recently"}
+            {createdByName ? `By ${createdByName} • ` : ""}Updated {formatDate(updatedAt).split(",")[0] || "recently"}
           </p>
         </div>
       </Link>

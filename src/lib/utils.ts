@@ -53,6 +53,31 @@ export function formatDate(dateString: string): string {
   });
 }
 
+export function formatDateTime(dateString?: string | Date | null): string {
+  if (!dateString) return "N/A";
+  const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+  if (isNaN(date.getTime())) return "N/A";
+  return date.toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
+export function formatTime(dateString?: string | Date | null): string {
+  if (!dateString) return "";
+  const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+  if (isNaN(date.getTime())) return "";
+  return date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 export function getFiscalPeriod(date: Date = new Date()): {
   fiscalYear: number;
   fiscalMonth: number;

@@ -17,6 +17,8 @@ export interface ExpenseItem {
   logCount: number;
   updatedAt: string;
   createdAt?: string;
+  createdByName?: string;
+  updatedByName?: string;
 }
 
 interface ExpenseLedgerListProps {
@@ -259,6 +261,9 @@ export default function ExpenseLedgerList({
               totalSpent={expense.totalSpent}
               logCount={expense.logCount}
               updatedAt={expense.updatedAt}
+              createdAt={expense.createdAt}
+              createdByName={expense.createdByName}
+              updatedByName={expense.updatedByName}
               currency={currency}
               viewMode={viewMode}
             />

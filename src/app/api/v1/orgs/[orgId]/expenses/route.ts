@@ -33,10 +33,24 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
 
   const results = await db.query.expenses.findMany({
     where: and(...conditions),
+    with: {
+      createdByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+      updatedByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+    },
     orderBy: [desc(expenses.updatedAt)],
   });
 
-  return NextResponse.json({ success: true, data: results });
+  const enriched = results.map((e) => ({
+    ...e,
+    createdByName: e.createdByUser?.name || e.createdByUser?.email || null,
+    updatedByName: e.updatedByUser?.name || e.updatedByUser?.email || null,
+  }));
+
+  return NextResponse.json({ success: true, data: enriched });
 }
 
 // POST /api/v1/orgs/:orgId/expenses (Admin only, idempotent)
@@ -65,6 +79,7 @@ export async function POST(req: NextRequest, { params }: RouteProps) {
         logCount: 0,
         isArchived: false,
         createdBy: authRes.context.userId,
+        updatedBy: authRes.context.userId,
         createdAt: now,
         updatedAt: now,
       })

@@ -66,5 +66,6 @@ The collection comes pre-configured with the following variables:
 
 ## 🔒 Security & Data Integrity Rules
 - **Multi-Tenant Isolation:** `orgId` checked on every query.
+- **Audit Trails & Attribution:** All mutations track `createdBy` / `loggedBy` and `updatedBy` along with ISO timestamps. Responses include joined `createdByName` / `loggedByName` and `updatedByName`.
 - **Amounts in Paisa:** Stored strictly as positive integer cents/paisa (`amountPaisa`).
 - **Audit Preserved:** Ledgers with `logCount > 0` cannot be hard deleted.

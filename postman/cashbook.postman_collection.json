@@ -352,7 +352,7 @@
               "code": 200,
               "_postman_previewlanguage": "json",
               "header": [{ "key": "Content-Type", "value": "application/json" }],
-              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"9c3fed1a-0338-46c1-a1b9-37b6b2951b69\",\n      \"orgId\": \"cee5c6bb-9f52-47e5-8c1b-c21c3e77f091\",\n      \"title\": \"My Expense List\",\n      \"category\": \"Personal\",\n      \"totalSpent\": \"250000.00\",\n      \"logCount\": 1,\n      \"isArchived\": false,\n      \"updatedAt\": \"2026-11-21T05:26:19.235Z\"\n    }\n  ]\n}"
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"9c3fed1a-0338-46c1-a1b9-37b6b2951b69\",\n      \"orgId\": \"cee5c6bb-9f52-47e5-8c1b-c21c3e77f091\",\n      \"title\": \"My Expense List\",\n      \"category\": \"Personal\",\n      \"totalSpent\": \"250000.00\",\n      \"logCount\": 1,\n      \"isArchived\": false,\n      \"createdBy\": \"user_alex_romanov\",\n      \"createdByName\": \"Alex Romanov\",\n      \"updatedBy\": \"user_alex_romanov\",\n      \"updatedByName\": \"Alex Romanov\",\n      \"createdAt\": \"2026-11-21T05:20:00.000Z\",\n      \"updatedAt\": \"2026-11-21T05:26:19.235Z\"\n    }\n  ]\n}"
             }
           ]
         },

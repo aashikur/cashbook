@@ -33,6 +33,7 @@ export const expenses = pgTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id, { onDelete: "restrict" }),
+    updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -54,6 +55,10 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
   }),
   createdByUser: one(user, {
     fields: [expenses.createdBy],
+    references: [user.id],
+  }),
+  updatedByUser: one(user, {
+    fields: [expenses.updatedBy],
     references: [user.id],
   }),
 }));

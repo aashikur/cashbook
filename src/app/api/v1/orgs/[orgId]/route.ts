@@ -25,6 +25,14 @@ export async function GET(_req: NextRequest, { params }: RouteProps) {
 
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.id, orgId),
+    with: {
+      owner: {
+        columns: { id: true, name: true, email: true },
+      },
+      updatedByUser: {
+        columns: { id: true, name: true, email: true },
+      },
+    },
   });
 
   if (!org) {
@@ -55,6 +63,8 @@ export async function GET(_req: NextRequest, { params }: RouteProps) {
     success: true,
     data: {
       ...org,
+      ownerName: org.owner?.name || org.owner?.email || null,
+      updatedByName: org.updatedByUser?.name || org.updatedByUser?.email || null,
       role: authRes.context.role,
       currentYearSummary: {
         year: currentYear,
@@ -80,6 +90,7 @@ export async function PATCH(req: NextRequest, { params }: RouteProps) {
       .set({
         ...validated,
         currency: validated.currency ? validated.currency.toUpperCase() : undefined,
+        updatedBy: authRes.context.userId,
         updatedAt: new Date(),
       })
       .where(eq(organizations.id, orgId))

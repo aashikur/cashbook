@@ -6,9 +6,11 @@ import { useLiveQuery } from "dexie-react-hooks";
 import QuickAddLogModal from "@/components/dashboard/QuickAddLogModal";
 import EditLogModal from "@/components/dashboard/EditLogModal";
 import EditExpenseModal from "@/components/dashboard/EditExpenseModal";
+import LogDetailsModal from "@/components/dashboard/LogDetailsModal";
+import BookDetailsModal from "@/components/dashboard/BookDetailsModal";
 import { useAppStore } from "@/store/app-store";
 import { localDb, LocalDailyLog } from "@/lib/local-db";
-import { formatCleanAmount, formatCurrency, formatDate } from "@/lib/utils";
+import { formatCleanAmount, formatCurrency, formatDate, formatTime } from "@/lib/utils";
 import { getCategoryIcon } from "@/lib/categories";
 import {
   Archive,
@@ -18,6 +20,7 @@ import {
   Edit2,
   Filter,
   Image as ImageIcon,
+  Info,
   Minus,
   MoreVertical,
   Plus,
@@ -80,7 +83,9 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
   const [isEditExpenseOpen, setIsEditExpenseOpen] = useState(false);
+  const [isBookDetailsOpen, setIsBookDetailsOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<LocalDailyLog | null>(null);
+  const [viewingLog, setViewingLog] = useState<LocalDailyLog | null>(null);
 
   const menuRef = useRef<HTMLDivElement>(null);
   const datePopoverRef = useRef<HTMLDivElement>(null);
@@ -385,6 +390,17 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                   type="button"
                   onClick={() => {
                     setIsHeaderMenuOpen(false);
+                    setIsBookDetailsOpen(true);
+                  }}
+                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
+                >
+                  <Info size={15} className="text-primary" />
+                  <span>Book Information</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsHeaderMenuOpen(false);
                     setIsEditExpenseOpen(true);
                   }}
                   className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
@@ -680,7 +696,8 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                 return (
                   <div
                     key={log.id}
-                    className="flex items-center justify-between p-3.5 bg-surface rounded-2xl transition-all hover:bg-subtle/70 border border-border-subtle/50 shadow-xs"
+                    onClick={() => setViewingLog(log)}
+                    className="flex items-center justify-between p-3.5 bg-surface rounded-2xl transition-all hover:bg-subtle/70 border border-border-subtle/50 shadow-xs cursor-pointer group"
                   >
                     <div className="flex items-center gap-3 min-w-0 pr-2">
                       {/* Category Icon Box */}
@@ -690,7 +707,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-txt-main block truncate">
+                          <span className="text-sm font-semibold text-txt-main block truncate group-hover:text-primary transition-colors">
                             {displayNote}
                           </span>
                           {log.category && log.category !== "General" && (
@@ -699,14 +716,35 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-txt-muted mt-0.5">
+                        <div className="flex items-center gap-1.5 text-[11px] text-txt-muted mt-0.5 flex-wrap">
                           <span>{formatDate(log.logDate).split(",")[0]}</span>
+                          {log.createdAt && (
+                            <>
+                              <span>•</span>
+                              <span>{formatTime(log.createdAt)}</span>
+                            </>
+                          )}
+                          {log.loggedByName && (
+                            <>
+                              <span>•</span>
+                              <span className="font-medium text-txt-secondary">
+                                {log.loggedByName}
+                              </span>
+                            </>
+                          )}
+                          {Boolean(log.updatedBy) && (
+                            <span className="text-[9px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-1 py-0.2 rounded">
+                              Edited
+                            </span>
+                          )}
                           {hasReceipt && (
                             <button
-                              onClick={() =>
-                                setActiveReceiptUrl(log.attachments![0].url)
-                              }
-                              className="text-primary hover:underline font-medium flex items-center gap-1 cursor-pointer"
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveReceiptUrl(log.attachments![0].url);
+                              }}
+                              className="text-primary hover:underline font-medium flex items-center gap-1 cursor-pointer ml-0.5"
                             >
                               <ImageIcon size={11} />
                               <span>Receipt</span>
@@ -727,7 +765,11 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
                       {/* Edit Button */}
                       <button
-                        onClick={() => setEditingLog(log)}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingLog(log);
+                        }}
                         className="p-1.5 rounded-lg text-txt-muted hover:text-primary hover:bg-primary-light transition-colors cursor-pointer"
                         title="Edit Transaction"
                       >
@@ -737,7 +779,11 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                       {/* Delete Button */}
                       {activeOrg?.role === "admin" && (
                         <button
-                          onClick={() => handleDeleteLog(log.id)}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteLog(log.id);
+                          }}
                           className="p-1.5 rounded-lg text-txt-muted hover:text-cash-out hover:bg-cash-out-light transition-colors cursor-pointer"
                           title="Delete Transaction"
                         >
@@ -837,6 +883,43 @@ export default function ExpenseDetailPage({ params }: PageProps) {
               }
             : null
         }
+      />
+
+      {/* View Transaction Details Modal */}
+      <LogDetailsModal
+        isOpen={Boolean(viewingLog)}
+        onClose={() => setViewingLog(null)}
+        log={viewingLog}
+        currency={currency}
+        canEdit={activeOrg?.role === "admin"}
+        onEdit={() => {
+          if (viewingLog) {
+            setEditingLog(viewingLog);
+            setViewingLog(null);
+          }
+        }}
+        onDelete={() => {
+          if (viewingLog) {
+            handleDeleteLog(viewingLog.id);
+            setViewingLog(null);
+          }
+        }}
+      />
+
+      {/* View Book Details Modal */}
+      <BookDetailsModal
+        isOpen={isBookDetailsOpen}
+        onClose={() => setIsBookDetailsOpen(false)}
+        expense={expense}
+        currency={currency}
+        totalInPaisa={totalInPaisa}
+        totalOutPaisa={totalOutPaisa}
+        netBalancePaisa={netBalancePaisa}
+        canEdit={activeOrg?.role === "admin"}
+        onEdit={() => {
+          setIsBookDetailsOpen(false);
+          setIsEditExpenseOpen(true);
+        }}
       />
     </div>
   );

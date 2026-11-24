@@ -117,6 +117,7 @@ export async function POST(req: NextRequest, { params }: RouteProps) {
         fiscalMonth: month,
         attachments: validated.attachments,
         loggedBy: authRes.context.userId,
+        updatedBy: authRes.context.userId,
         createdAt: now,
         updatedAt: now,
       })
