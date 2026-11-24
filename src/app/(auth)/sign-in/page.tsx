@@ -38,7 +38,7 @@ export default function SignInPage() {
   }
 
   return (
-    <div className="bg-surface border border-border-default/80 rounded-3xl p-6 sm:p-8 shadow-sm">
+    <div className="bg-white rounded-3xl p-6 sm:p-8">
       {/* Brand Logo Header (Mockup Matched) */}
       <div className="flex items-center justify-center gap-2.5 mb-6">
         <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-blue-600 to-blue-500 text-white flex items-center justify-center shadow-md shadow-blue-500/25">
@@ -63,7 +63,7 @@ export default function SignInPage() {
       <button
         onClick={handleGoogleSignIn}
         disabled={googleLoading}
-        className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl border border-border-default hover:bg-subtle text-xs sm:text-sm font-semibold text-txt-main transition-all mb-5 cursor-pointer disabled:opacity-50 shadow-2xs"
+        className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl border border-border-default hover:bg-subtle text-xs sm:text-sm font-semibold text-txt-main transition-all mb-5 cursor-pointer disabled:opacity-50"
       >
         <svg width="18" height="18" viewBox="0 0 24 24">
           <path

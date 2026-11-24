@@ -13,7 +13,7 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-canvas flex flex-col lg:flex-row w-full selection:bg-primary-light selection:text-primary">
+    <div className="min-h-screen bg-white flex flex-col lg:flex-row w-full selection:bg-primary-light selection:text-primary">
       {/* Left Column: Visual Showcase (Reference Matched, Full Screen on lg+) */}
       <div className="hidden lg:flex lg:w-1/2 xl:w-[56%] relative bg-gradient-to-br from-[#ebf3ff] via-[#f3f7ff] to-[#e2eeff] flex-col justify-between p-8 xl:p-14 border-r border-blue-200/40 overflow-hidden select-none">
         {/* Soft decorative background ambient curves & lighting */}
@@ -130,7 +130,7 @@ export default function AuthLayout({
       </div>
 
       {/* Right Column: Interactive Auth Form */}
-      <div className="w-full lg:w-1/2 xl:w-[44%] min-h-screen flex items-center justify-center p-4 sm:p-8 lg:p-12 xl:p-16 bg-white dark:bg-slate-900 border-l border-border-subtle/50">
+      <div className="w-full lg:w-1/2 xl:w-[44%] min-h-screen flex items-center justify-center p-4 sm:p-8 lg:p-12 xl:p-16 bg-white border-l border-slate-100">
         <div className="w-full max-w-md">{children}</div>
       </div>
     </div>
