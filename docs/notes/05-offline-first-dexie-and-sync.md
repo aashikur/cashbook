@@ -47,3 +47,21 @@ sequenceDiagram
 
 - **Client-Generated UUIDs**: Every log and expense generates a `crypto.randomUUID()` before creation. Passed as an `Idempotency-Key` HTTP header. If mobile network drops during upload and retries, PostgreSQL's `onConflictDoNothing` prevents duplicate double-spending records.
 - **Delta Sync (`?since=`)**: The client only downloads records where `updatedAt > lastSyncTimestamp`, reducing mobile data usage to just a few kilobytes.
+
+---
+
+## 4. Progressive Web App (PWA) Service Worker & App Shell
+
+To ensure mobile devices without an internet connection can boot into the app immediately rather than encountering browser connection errors:
+
+- **Service Worker (`public/sw.js`)**:
+  - Pre-caches core application shell (`/dashboard`, `/`, `/manifest.json`, app icons).
+  - Employs **Network-First with Cache Fallback** for navigational requests: if offline, the cached app shell HTML is served immediately.
+  - Employs **Cache-First** for immutable Next.js static assets (`/_next/static/*`), guaranteeing instantaneous UI rendering.
+  - Bypasses `/api/*` endpoints so that Dexie.js (`localDb`) and `syncQueue` serve as the singular local-first source of truth for all business data.
+- **Client Lifecycle Registration (`src/components/pwa/ServiceWorkerRegister.tsx`)**:
+  - Automatically registers the Service Worker on window load in `src/app/layout.tsx`.
+- **Full Offline Mutation Support (`CREATE`, `UPDATE`, `DELETE`)**:
+  - Offline mutations across books and logs (create, edit note/amount/date, delete log) optimistically mutate Dexie IndexedDB and enqueue into `localDb.syncQueue`.
+  - When connection is restored (`window.online`), `processSyncQueue()` flushes pending tasks to the server.
+

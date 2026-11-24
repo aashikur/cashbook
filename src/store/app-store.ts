@@ -118,7 +118,10 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: "cashbook-app-storage",
-      partialize: (state) => ({ activeOrg: state.activeOrg }),
+      partialize: (state) => ({
+        activeOrg: state.activeOrg,
+        orgs: state.orgs,
+      }),
     }
   )
 );

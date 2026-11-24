@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { localDb } from "@/lib/local-db";
+import { enqueueSyncItem } from "@/lib/sync-service";
 import { X, Archive, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -65,16 +66,41 @@ export default function EditExpenseModal({
         updatedAt: new Date().toISOString(),
       });
 
-      // 2. Server PATCH
-      const res = await fetch(`/api/v1/orgs/${orgId}/expenses/${expense.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // 2. Server PATCH with offline queue fallback
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/v1/orgs/${orgId}/expenses/${expense.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
 
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "Failed to update book");
+          if (!res.ok) {
+            await enqueueSyncItem({
+              entityType: "expense",
+              entityId: expense.id,
+              operation: "UPDATE",
+              orgId,
+              payload,
+            });
+          }
+        } catch {
+          await enqueueSyncItem({
+            entityType: "expense",
+            entityId: expense.id,
+            operation: "UPDATE",
+            orgId,
+            payload,
+          });
+        }
+      } else {
+        await enqueueSyncItem({
+          entityType: "expense",
+          entityId: expense.id,
+          operation: "UPDATE",
+          orgId,
+          payload,
+        });
       }
 
       setLoading(false);

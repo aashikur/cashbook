@@ -12,22 +12,35 @@ This guide documents the implementation of authentication, Google OAuth unificat
 
 ---
 
-## 2. Server Setup (`src/lib/auth.ts`)
+## 2. Server Setup (`src/lib/auth.ts`) & Route Handler
 
 ```typescript
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { nextCookies } from "better-auth/next-js";
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: { user, session, account, verification },
   }),
-  emailAndPassword: { enabled: true, requireEmailVerification: true },
+  emailAndPassword: { enabled: true, requireEmailVerification: false },
   socialProviders: {
     google: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      clientId: process.env.GOOGLE_CLIENT_ID || "mock-client-id",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "mock-client-secret",
     },
   },
+  plugins: [nextCookies()],
 });
+```
+
+And in `src/app/api/auth/[...all]/route.ts`:
+```typescript
+import { auth } from "@/lib/auth";
+import { toNextJsHandler } from "better-auth/next-js";
+
+export const { GET, POST } = toNextJsHandler(auth);
 ```
 
 ---

@@ -153,6 +153,45 @@ export async function processSyncQueue(): Promise<{
         } else {
           failed++;
         }
+      } else if (item.entityType === "daily_log" && item.operation === "UPDATE") {
+        const res = await fetch(`/api/v1/orgs/${item.orgId}/logs/${item.entityId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item.payload),
+        });
+
+        if (res.ok) {
+          await localDb.dailyLogs.update(item.entityId, { syncStatus: "synced" });
+          await localDb.syncQueue.delete(item.id);
+          processed++;
+        } else {
+          failed++;
+        }
+      } else if (item.entityType === "daily_log" && item.operation === "DELETE") {
+        const res = await fetch(`/api/v1/orgs/${item.orgId}/logs/${item.entityId}`, {
+          method: "DELETE",
+        });
+
+        if (res.ok) {
+          await localDb.syncQueue.delete(item.id);
+          processed++;
+        } else {
+          failed++;
+        }
+      } else if (item.entityType === "expense" && item.operation === "UPDATE") {
+        const res = await fetch(`/api/v1/orgs/${item.orgId}/expenses/${item.entityId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(item.payload),
+        });
+
+        if (res.ok) {
+          await localDb.expenses.update(item.entityId, { syncStatus: "synced" });
+          await localDb.syncQueue.delete(item.id);
+          processed++;
+        } else {
+          failed++;
+        }
       }
     } catch (err) {
       console.error(`Sync queue item ${item.id} error:`, err);

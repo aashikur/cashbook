@@ -134,12 +134,12 @@ export default function AppHeader() {
 
           {/* Dropdown Menu */}
           {isDropdownOpen && (
-            <div className="absolute left-0 top-full mt-2 w-64 bg-surface border border-border-default rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-1.5 text-[10px] font-bold text-txt-muted uppercase tracking-wider">
-                Select Workspace / Account
+            <div className="absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-surface border border-border-default rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+              <div className="px-3 py-1.5 text-[10px] font-bold text-txt-muted uppercase tracking-wider truncate">
+                Select Your Current Business / Workspace
               </div>
 
-              <div className="flex flex-col gap-0.5 px-1.5">
+              <div className="flex flex-col gap-0.5 px-1.5 max-h-56 overflow-y-auto">
                 {orgs.map((org) => {
                   const isCurrent = activeOrg?.id === org.id;
                   return (
@@ -196,20 +196,18 @@ export default function AppHeader() {
                 <span>Create New Workspace</span>
               </button>
 
-              <div className="my-1 border-t border-border-subtle" />
-
-              <Link
-                href="/health"
-                onClick={() => setIsDropdownOpen(false)}
-                className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-txt-secondary hover:text-txt-main hover:bg-subtle transition-colors cursor-pointer"
-              >
-                <Activity size={14} className="text-cash-in" />
-                <span>System Health & Status</span>
-              </Link>
-
               {isSuperAdmin && (
                 <>
                   <div className="my-1 border-t border-border-subtle" />
+                  <Link
+                    href="/health"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-txt-secondary hover:text-txt-main hover:bg-subtle transition-colors cursor-pointer"
+                  >
+                    <Activity size={14} className="text-cash-in" />
+                    <span>System Health & Status</span>
+                  </Link>
+
                   <Link
                     href="/admin"
                     onClick={() => setIsDropdownOpen(false)}
@@ -232,13 +230,13 @@ export default function AppHeader() {
               </button>
 
               {/* Developer Attribution (Read-only) */}
-              <div className="pt-2 pb-0.5 px-4 text-center border-t border-border-subtle mt-1.5 bg-subtle/30 rounded-b-2xl">
-                <span className="text-[10px] text-txt-muted block font-medium">
-                  CashBook v1.0 • Designed & Developed by
-                </span>
-                <span className="text-[11px] font-semibold text-txt-main">
-                  Aashikur Rahaman
-                </span>
+              <div className="py-2 px-2 text-center border-t border-border-subtle mt-1.5 bg-subtle/30 rounded-b-2xl">
+                <p className="text-[10px] text-txt-muted font-medium whitespace-nowrap tracking-tight">
+                  CashBook v1.1 • Designed & Developed by{" "}
+                  <span className="font-semibold text-txt-main">
+                    Aashikur Rahaman
+                  </span>
+                </p>
               </div>
             </div>
           )}

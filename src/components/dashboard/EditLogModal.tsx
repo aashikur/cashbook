@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { localDb } from "@/lib/local-db";
+import { enqueueSyncItem } from "@/lib/sync-service";
 import { useAppStore } from "@/store/app-store";
 import CategoryPillSelector from "./CategoryPillSelector";
 import {
@@ -130,15 +131,41 @@ export default function EditLogModal({
         }
       }
 
-      // 2. Network request
-      const res = await fetch(`/api/v1/orgs/${orgId}/logs/${log.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(patchPayload),
-      });
+      // 2. Network request with offline queue fallback
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/v1/orgs/${orgId}/logs/${log.id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patchPayload),
+          });
 
-      if (!res.ok) {
-        console.warn("Failed to patch server log, offline queueing or retry needed");
+          if (!res.ok) {
+            await enqueueSyncItem({
+              entityType: "daily_log",
+              entityId: log.id,
+              operation: "UPDATE",
+              orgId,
+              payload: patchPayload,
+            });
+          }
+        } catch {
+          await enqueueSyncItem({
+            entityType: "daily_log",
+            entityId: log.id,
+            operation: "UPDATE",
+            orgId,
+            payload: patchPayload,
+          });
+        }
+      } else {
+        await enqueueSyncItem({
+          entityType: "daily_log",
+          entityId: log.id,
+          operation: "UPDATE",
+          orgId,
+          payload: patchPayload,
+        });
       }
 
       setLoading(false);

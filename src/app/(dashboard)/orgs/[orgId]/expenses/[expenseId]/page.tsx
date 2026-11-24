@@ -10,6 +10,7 @@ import LogDetailsModal from "@/components/dashboard/LogDetailsModal";
 import BookDetailsModal from "@/components/dashboard/BookDetailsModal";
 import { useAppStore } from "@/store/app-store";
 import { localDb, LocalDailyLog } from "@/lib/local-db";
+import { enqueueSyncItem } from "@/lib/sync-service";
 import { formatCleanAmount, formatCurrency, formatDate, formatTime } from "@/lib/utils";
 import { getCategoryIcon } from "@/lib/categories";
 import {
@@ -327,12 +328,41 @@ export default function ExpenseDetailPage({ params }: PageProps) {
         });
       }
 
-      await fetch(`/api/v1/orgs/${orgId}/logs/${logId}`, {
-        method: "DELETE",
-      });
-      refreshServerData();
-    } catch {
-      alert("Failed to delete transaction on server");
+      if (navigator.onLine) {
+        try {
+          const res = await fetch(`/api/v1/orgs/${orgId}/logs/${logId}`, {
+            method: "DELETE",
+          });
+          if (!res.ok) {
+            await enqueueSyncItem({
+              entityType: "daily_log",
+              entityId: logId,
+              operation: "DELETE",
+              orgId,
+              payload: {},
+            });
+          }
+          refreshServerData();
+        } catch {
+          await enqueueSyncItem({
+            entityType: "daily_log",
+            entityId: logId,
+            operation: "DELETE",
+            orgId,
+            payload: {},
+          });
+        }
+      } else {
+        await enqueueSyncItem({
+          entityType: "daily_log",
+          entityId: logId,
+          operation: "DELETE",
+          orgId,
+          payload: {},
+        });
+      }
+    } catch (err) {
+      console.error("Failed to delete log locally:", err);
     }
   }
 
