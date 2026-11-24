@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { orgMembers, user } from "@/db/schema";
 import { requireOrgMember } from "@/lib/auth-helpers";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { z } from "zod";
 
 const addMemberSchema = z.object({
@@ -37,14 +37,38 @@ export async function POST(req: NextRequest, { params }: RouteProps) {
   try {
     const body = await req.json();
     const validated = addMemberSchema.parse(body);
+    const targetEmail = validated.email.toLowerCase();
+
+    // Prevent inviting oneself
+    if (targetEmail === authRes.context.userEmail.toLowerCase()) {
+      return NextResponse.json(
+        { success: false, error: "You cannot invite yourself" },
+        { status: 400 }
+      );
+    }
 
     // Look up if user already exists
     const existingUser = await db.query.user.findFirst({
-      where: eq(user.email, validated.email.toLowerCase()),
+      where: eq(user.email, targetEmail),
     });
 
     const targetUserId = existingUser ? existingUser.id : crypto.randomUUID();
     const memberId = `${orgId}_${targetUserId}`;
+
+    // Check if already an active member
+    const existingMember = await db.query.orgMembers.findFirst({
+      where: and(
+        eq(orgMembers.orgId, orgId),
+        eq(orgMembers.userEmail, targetEmail)
+      ),
+    });
+
+    if (existingMember && existingMember.status === "active") {
+      return NextResponse.json(
+        { success: false, error: "This user is already an active member of this organization" },
+        { status: 400 }
+      );
+    }
 
     const [member] = await db
       .insert(orgMembers)
@@ -52,9 +76,9 @@ export async function POST(req: NextRequest, { params }: RouteProps) {
         id: memberId,
         orgId: orgId,
         userId: targetUserId,
-        userEmail: validated.email.toLowerCase(),
+        userEmail: targetEmail,
         role: validated.role,
-        status: existingUser ? "active" : "pending",
+        status: "pending", // Always set as pending so invited user receives the notification and can accept/decline
         invitedBy: authRes.context.userId,
         joinedAt: new Date(),
       })
@@ -62,7 +86,8 @@ export async function POST(req: NextRequest, { params }: RouteProps) {
         target: [orgMembers.orgId, orgMembers.userId],
         set: {
           role: validated.role,
-          status: existingUser ? "active" : "pending",
+          status: "pending",
+          userEmail: targetEmail,
         },
       })
       .returning();

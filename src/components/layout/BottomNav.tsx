@@ -17,7 +17,7 @@ export default function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-surface border-t border-border-subtle py-2 px-6 safe-area-pb">
-      <div className="max-w-md mx-auto flex items-center justify-around">
+      <div className="max-w-xl mx-auto flex items-center justify-around">
         {/* Tab 1: Books */}
         <Link
           href="/dashboard"

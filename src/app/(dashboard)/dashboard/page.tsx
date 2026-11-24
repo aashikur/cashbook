@@ -5,8 +5,10 @@ import AppHeader from "@/components/layout/AppHeader";
 import BottomNav from "@/components/layout/BottomNav";
 import SearchBar from "@/components/dashboard/SearchBar";
 import ExpenseLedgerList, {
+  BookSortOption,
   ExpenseItem,
 } from "@/components/dashboard/ExpenseLedgerList";
+import CopyBooksButton from "@/components/dashboard/CopyBooksButton";
 import QuickAddLogModal from "@/components/dashboard/QuickAddLogModal";
 import CreateExpenseModal from "@/components/dashboard/CreateExpenseModal";
 import CreateOrgModal from "@/components/dashboard/CreateOrgModal";
@@ -60,6 +62,46 @@ export default function DashboardPage() {
     );
   }, [localExpenses, searchQuery]);
 
+  // Persist user sort preference in localStorage
+  const [sortOption, setSortOption] = useState<BookSortOption>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("cashbook_book_sort") as BookSortOption;
+      if (saved === "updated" || saved === "alphabetical" || saved === "created") {
+        return saved;
+      }
+    }
+    return "updated";
+  });
+
+  const handleSortChange = (option: BookSortOption) => {
+    setSortOption(option);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("cashbook_book_sort", option);
+    }
+  };
+
+  // Reactive sorted expenses list based on user selection & search query
+  const sortedExpenses = useMemo(() => {
+    const list = [...filteredExpenses];
+    if (sortOption === "alphabetical") {
+      return list.sort((a, b) =>
+        a.title.localeCompare(b.title, undefined, { sensitivity: "base" })
+      );
+    }
+    if (sortOption === "created") {
+      return list.sort((a, b) => {
+        const timeA = new Date(a.createdAt || a.updatedAt || 0).getTime();
+        const timeB = new Date(b.createdAt || b.updatedAt || 0).getTime();
+        return timeB - timeA;
+      });
+    }
+    return list.sort((a, b) => {
+      const timeA = new Date(a.updatedAt || 0).getTime();
+      const timeB = new Date(b.updatedAt || 0).getTime();
+      return timeB - timeA;
+    });
+  }, [filteredExpenses, sortOption]);
+
   // 3. Query all workspace logs to compute total balance across all books
   const allWorkspaceLogs = useLiveQuery(
     async () => {
@@ -72,6 +114,24 @@ export default function DashboardPage() {
     [activeOrg?.id],
     []
   );
+
+  // Group logs by expenseId for instant per-book balance resolution
+  const logsByExpenseId = useMemo(() => {
+    const map = new Map<
+      string,
+      Array<{ type?: string; note?: string; amountPaisa: number }>
+    >();
+    if (!allWorkspaceLogs) return map;
+    for (const log of allWorkspaceLogs) {
+      let list = map.get(log.expenseId);
+      if (!list) {
+        list = [];
+        map.set(log.expenseId, list);
+      }
+      list.push(log);
+    }
+    return map;
+  }, [allWorkspaceLogs]);
 
   const totalBalancePaisa = useMemo(() => {
     if (allWorkspaceLogs && allWorkspaceLogs.length > 0) {
@@ -119,7 +179,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex flex-col bg-canvas pb-24">
         <AppHeader />
-        <main className="max-w-md mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
+        <main className="max-w-xl mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
           {/* Executive Balance Card Skeleton */}
           <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 shadow-xl shadow-blue-500/10 bg-gradient-to-br from-blue-600/90 via-blue-500/90 to-blue-600/90 animate-pulse text-white">
             <div className="flex items-center justify-between mb-2">
@@ -186,7 +246,7 @@ export default function DashboardPage() {
     return (
       <div className="min-h-screen flex flex-col bg-canvas">
         <AppHeader />
-        <main className="max-w-md mx-auto px-4 py-20 flex flex-col items-center justify-center text-center flex-1 gap-4">
+        <main className="max-w-xl mx-auto px-4 py-20 flex flex-col items-center justify-center text-center flex-1 gap-4">
           <div className="w-14 h-14 rounded-2xl bg-primary-light border border-primary-border flex items-center justify-center text-primary shadow-sm">
             <BookOpen size={26} />
           </div>
@@ -215,7 +275,7 @@ export default function DashboardPage() {
       {/* Top Header with User Profile / Org (Screen 1 Reference) */}
       <AppHeader />
 
-      <main className="max-w-md mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
+      <main className="max-w-xl mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
         {/* Workspace Total Balance Executive Card */}
         <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-blue-500/15 bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 transition-all">
           {/* Ambient decorative blurred lighting */}
@@ -243,10 +303,19 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Middle: Big Balance Display */}
-          <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-sans my-1 text-white relative z-10">
-            {totalBalancePaisa < 0 ? "-" : ""}
-            {formatCurrency(Math.abs(totalBalancePaisa) / 100, currency)}
+          {/* Middle & Bottom: Big Balance Display + Bottom-Right Copy Button */}
+          <div className="flex items-end justify-between mt-1 relative z-10 gap-3">
+            <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-sans text-white min-w-0 truncate">
+              {totalBalancePaisa < 0 ? "-" : ""}
+              {formatCurrency(Math.abs(totalBalancePaisa) / 100, currency)}
+            </div>
+
+            {/* Bottom Right: Copy for Excel / Google Sheets (matches Image 1 reference) */}
+            <CopyBooksButton
+              expenses={sortedExpenses as ExpenseItem[]}
+              logsByExpenseId={logsByExpenseId}
+              sortOption={sortOption}
+            />
           </div>
         </div>
 
@@ -254,7 +323,11 @@ export default function DashboardPage() {
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
         {/* Your Books Section with + Add New Book button */}
-        <ExpenseLedgerList expenses={(filteredExpenses || []) as ExpenseItem[]} />
+        <ExpenseLedgerList
+          expenses={sortedExpenses as ExpenseItem[]}
+          sortOption={sortOption}
+          onSortChange={handleSortChange}
+        />
       </main>
 
       {/* Floating Action Modals */}

@@ -3,10 +3,10 @@
 import React, { useState, useMemo } from "react";
 import BookCard from "./BookCard";
 import { useAppStore } from "@/store/app-store";
-import { BookOpen, Check, Filter, LayoutGrid, List, Plus } from "lucide-react";
+import { BookOpen, Check, Columns2, Filter, LayoutGrid, List, Plus } from "lucide-react";
 
 export type BookSortOption = "updated" | "alphabetical" | "created";
-export type BookViewMode = "grid" | "list";
+export type BookViewMode = "grid" | "columns" | "list";
 
 export interface ExpenseItem {
   id: string;
@@ -23,16 +23,20 @@ export interface ExpenseItem {
 
 interface ExpenseLedgerListProps {
   expenses: ExpenseItem[];
+  sortOption?: BookSortOption;
+  onSortChange?: (option: BookSortOption) => void;
 }
 
 export default function ExpenseLedgerList({
   expenses,
+  sortOption: controlledSortOption,
+  onSortChange,
 }: ExpenseLedgerListProps) {
   const { activeOrg, setAddExpenseOpen } = useAppStore();
   const currency = activeOrg?.currency || "BDT";
 
-  // Persist user sort preference in localStorage
-  const [sortOption, setSortOption] = useState<BookSortOption>(() => {
+  // Persist user sort preference in localStorage (internal fallback if uncontrolled)
+  const [internalSortOption, setInternalSortOption] = useState<BookSortOption>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("cashbook_book_sort") as BookSortOption;
       if (saved === "updated" || saved === "alphabetical" || saved === "created") {
@@ -42,11 +46,13 @@ export default function ExpenseLedgerList({
     return "updated";
   });
 
-  // Persist user view mode (grid vs compact list) in localStorage
+  const sortOption = controlledSortOption ?? internalSortOption;
+
+  // Persist user view mode (grid vs columns vs compact list) in localStorage
   const [viewMode, setViewMode] = useState<BookViewMode>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("cashbook_book_view") as BookViewMode;
-      if (saved === "grid" || saved === "list") {
+      if (saved === "grid" || saved === "columns" || saved === "list") {
         return saved;
       }
     }
@@ -56,7 +62,11 @@ export default function ExpenseLedgerList({
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
   function handleSortChange(option: BookSortOption) {
-    setSortOption(option);
+    if (onSortChange) {
+      onSortChange(option);
+    } else {
+      setInternalSortOption(option);
+    }
     if (typeof window !== "undefined") {
       localStorage.setItem("cashbook_book_sort", option);
     }
@@ -101,7 +111,7 @@ export default function ExpenseLedgerList({
         </h2>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* View Mode Toggle: Grid vs Compact List */}
+          {/* View Mode Toggle: Grid vs Column vs Compact List */}
           <div className="flex items-center bg-surface border border-border-default rounded-xl p-0.5 shadow-2xs">
             <button
               type="button"
@@ -114,6 +124,18 @@ export default function ExpenseLedgerList({
               title="Card view (Spacious)"
             >
               <LayoutGrid size={14} />
+            </button>
+            <button
+              type="button"
+              onClick={() => handleViewModeChange("columns")}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewMode === "columns"
+                  ? "bg-primary text-white shadow-xs"
+                  : "text-txt-muted hover:text-txt-main hover:bg-subtle"
+              }`}
+              title="Column view (Multi-column on PC)"
+            >
+              <Columns2 size={14} />
             </button>
             <button
               type="button"
@@ -250,7 +272,15 @@ export default function ExpenseLedgerList({
           )}
         </div>
       ) : (
-        <div className={viewMode === "list" ? "w-full flex flex-col gap-1.5" : "w-full flex flex-col gap-2"}>
+        <div
+          className={
+            viewMode === "columns"
+              ? "w-full grid grid-cols-1 sm:grid-cols-2 gap-2"
+              : viewMode === "list"
+              ? "w-full flex flex-col gap-1.5"
+              : "w-full flex flex-col gap-2"
+          }
+        >
           {sortedExpenses.map((expense) => (
             <BookCard
               key={expense.id}

@@ -219,9 +219,21 @@ export default function MembersPage({ params }: PageProps) {
                     <span className="text-xs font-semibold text-txt-main truncate block">
                       {member.userEmail}
                     </span>
-                    <span className="text-[10px] text-txt-muted capitalize">
-                      Status: {member.status}
-                    </span>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      {member.status === "active" ? (
+                        <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400 px-1.5 py-0.2 rounded-md border border-emerald-200 dark:border-emerald-800">
+                          Active
+                        </span>
+                      ) : member.status === "pending" ? (
+                        <span className="text-[10px] font-semibold text-amber-600 bg-amber-50 dark:bg-amber-950/60 dark:text-amber-400 px-1.5 py-0.2 rounded-md border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                          Awaiting Accept
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-txt-muted bg-subtle px-1.5 py-0.2 rounded-md">
+                          {member.status}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

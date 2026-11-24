@@ -352,7 +352,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     <div className="min-h-screen flex flex-col bg-canvas pb-28">
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-surface border-b border-border-subtle px-4 py-3">
-        <div className="max-w-md mx-auto flex items-center justify-between">
+        <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/dashboard"
@@ -425,7 +425,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      <main className="max-w-md mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
+      <main className="max-w-xl mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
         {/* Top Single Card (Modern Royal Blue Gradient, Matching Image 2) */}
         <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-blue-500/15 bg-linear-to-br from-blue-600 via-blue-500 to-blue-600 transition-all">
           {/* Decorative ambient blurred circles */}
@@ -827,7 +827,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
       {/* Fixed Sticky Action Bar at Bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-surface/95 backdrop-blur-md border-t border-border-subtle p-3 px-4 safe-area-pb">
-        <div className="max-w-md mx-auto flex gap-3">
+        <div className="max-w-xl mx-auto flex gap-3">
           {/* Green Cash In Button */}
           <button
             onClick={handleOpenCashIn}

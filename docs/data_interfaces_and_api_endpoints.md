@@ -188,9 +188,12 @@ All `/api/v1/orgs/:orgId/*` routes validate the user's session cookie/Bearer tok
 | Method | Endpoint | Access | Request / Query Params | Response / Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/orgs/:orgId/members` | Admin / Viewer | — | Returns `OrgMember[]` list |
-| `POST` | `/api/v1/orgs/:orgId/members` | Admin | `{ email, role: 'admin' \| 'viewer' }` | Grants access to existing user or creates pending invite |
+| `POST` | `/api/v1/orgs/:orgId/members` | Admin | `{ email, role: 'admin' \| 'viewer' }` | Invites user via email (creates pending invite) |
 | `PATCH` | `/api/v1/orgs/:orgId/members/:userId` | Admin | `{ role?, status? }` | Changes member role or revokes access |
 | `DELETE` | `/api/v1/orgs/:orgId/members/:userId` | Admin | — | Removes member from organization |
+| `GET` | `/api/v1/invitations` | Authenticated | — | Lists all pending invitations for currently logged-in user |
+| `POST` | `/api/v1/invitations/:inviteId/accept` | Authenticated | — | Accepts invitation and activates workspace membership |
+| `POST` | `/api/v1/invitations/:inviteId/decline` | Authenticated | — | Declines/revokes pending workspace invitation |
 
 ### 3.4 Expenses (Ledgers)
 | Method | Endpoint | Access | Request / Query Params | Response / Description |

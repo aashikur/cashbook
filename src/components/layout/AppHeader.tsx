@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAppStore, OrgContext } from "@/store/app-store";
 import { signOut, useSession } from "@/lib/auth-client";
 import EditOrgModal from "@/components/dashboard/EditOrgModal";
+import NotificationBell from "@/components/layout/NotificationBell";
 import { isSuperAdminEmail } from "@/lib/admin-constants";
 import {
   Activity,
@@ -111,7 +112,7 @@ export default function AppHeader() {
 
   return (
     <header className="sticky top-0 z-40 w-full bg-surface border-b border-border-subtle px-4 py-3">
-      <div className="max-w-md mx-auto flex items-center justify-between">
+      <div className="max-w-xl mx-auto flex items-center justify-between">
         {/* User Profile & Org Switcher (Screen 1 Reference) */}
         <div className="relative">
           <button
@@ -212,7 +213,7 @@ export default function AppHeader() {
                   <Link
                     href="/admin"
                     onClick={() => setIsDropdownOpen(false)}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 transition-colors cursor-pointer"
+                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-primary hover:bg-primary-light transition-colors cursor-pointer"
                   >
                     <ShieldCheck size={14} className="stroke-[2.5]" />
                     <span>Platform Super Admin</span>
@@ -258,13 +259,16 @@ export default function AppHeader() {
           {isSuperAdmin && (
             <Link
               href="/admin"
-              className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:border-indigo-800 dark:text-indigo-300 border border-indigo-200 text-[11px] font-bold transition-all shadow-2xs"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-primary-light hover:bg-blue-100 text-primary border border-primary-border text-[11px] font-bold transition-all shadow-2xs"
               title="Platform Super Admin Console"
             >
               <ShieldCheck size={13} className="stroke-[2.5]" />
-              <span className="hidden sm:inline">Console</span>
+              <span className="hidden sm:inline">Admin</span>
             </Link>
           )}
+
+          {/* Workspace Invitations Notification Bell */}
+          <NotificationBell />
 
           {activeOrg && (
             <Link

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { BookOpen, Minus, Plus } from "lucide-react";
-import { formatCleanAmount, formatDate } from "@/lib/utils";
+import { computeBookBalancePaisa, formatCleanAmount, formatDate } from "@/lib/utils";
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb } from "@/lib/local-db";
 import { useAppStore } from "@/store/app-store";
@@ -20,7 +20,7 @@ interface BookCardProps {
   createdByName?: string;
   updatedByName?: string;
   currency: string;
-  viewMode?: "grid" | "list";
+  viewMode?: "grid" | "list" | "columns";
 }
 
 export default function BookCard({
@@ -45,53 +45,10 @@ export default function BookCard({
     []
   );
 
-  let netPaisa = 0;
-  let hasTransactions = false;
-
-  if (bookLogs && bookLogs.length > 0) {
-    hasTransactions = true;
-    for (const log of bookLogs) {
-      const isCashIn =
-        log.type === "in" ||
-        (log.type !== "out" &&
-          (log.note.toLowerCase().startsWith("[in]") ||
-            log.note.toLowerCase().includes("freelance") ||
-            log.note.toLowerCase().includes("salary") ||
-            log.note.toLowerCase().includes("client") ||
-            log.note.toLowerCase().includes("cash in") ||
-            log.note.toLowerCase().includes("income") ||
-            log.note.toLowerCase().includes("deposit")));
-
-      if (isCashIn) {
-        netPaisa += log.amountPaisa;
-      } else {
-        netPaisa -= log.amountPaisa;
-      }
-    }
-  }
-
-  // Fallback if no local logs yet (initial seeded mock state)
-  const paisa =
-    typeof totalSpent === "string"
-      ? parseInt(totalSpent, 10) || 0
-      : totalSpent;
-
-  const isIncomeFallback =
-    category?.toLowerCase() === "income" ||
-    category?.toLowerCase() === "revenue" ||
-    category?.toLowerCase() === "investment" ||
-    title.toLowerCase().includes("salary") ||
-    title.toLowerCase().includes("income") ||
-    title.toLowerCase().includes("freelance") ||
-    title.toLowerCase().includes("deposit") ||
-    title.toLowerCase().includes("savings");
-
-  // Determine final display values: positive = green (+), negative = red (-), 0 = neutral
-  const displayPaisa = hasTransactions
-    ? netPaisa
-    : isIncomeFallback
-    ? Math.abs(paisa)
-    : -Math.abs(paisa);
+  const displayPaisa = computeBookBalancePaisa(
+    { id, title, category, totalSpent },
+    bookLogs
+  );
 
   const isPositive = displayPaisa > 0;
   const isZero = displayPaisa === 0;
@@ -106,6 +63,65 @@ export default function BookCard({
     setActiveExpenseId(id);
     setLogType(type);
     setAddLogOpen(true);
+  }
+
+  // Multi-Column Grid View (Optimized for 2-column layout on PC)
+  if (viewMode === "columns") {
+    return (
+      <div className="w-full flex items-center justify-between py-2 px-2.5 sm:px-3 bg-surface rounded-[12px] transition-all group hover:bg-subtle border-0 shadow-none">
+        {/* Clickable Area for Book Navigation */}
+        <Link
+          href={`/orgs/${orgId}/expenses/${id}`}
+          className="flex items-center gap-2 min-w-0 pr-1.5 flex-1 cursor-pointer"
+        >
+          {/* Compact Book Icon */}
+          <div className="w-6.5 h-6.5 rounded-lg bg-primary-light text-primary flex items-center justify-center shrink-0 border border-primary-border/70 group-hover:bg-primary-light transition-colors">
+            <BookOpen size={13} />
+          </div>
+
+          {/* Compact Book Title */}
+          <span className="text-xs font-semibold text-txt-main group-hover:text-primary transition-colors truncate">
+            {title}
+          </span>
+        </Link>
+
+        {/* Right Side: Amount & Compact Quick (+/-) Update */}
+        <div className="flex items-center gap-1.5 shrink-0 pl-1">
+          <Link
+            href={`/orgs/${orgId}/expenses/${id}`}
+            className={`font-semibold text-xs text-right cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap ${
+              isZero
+                ? "text-txt-muted"
+                : isPositive
+                ? "text-cash-in"
+                : "text-cash-out"
+            }`}
+          >
+            {isZero ? "0" : isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
+          </Link>
+
+          {/* Quick (+ In / - Out) Buttons */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => handleQuickAction(e, "in")}
+              title="Quick Cash In"
+              className="w-5.5 h-5.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-90 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <Plus size={11} className="stroke-[2.5]" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => handleQuickAction(e, "out")}
+              title="Quick Cash Out"
+              className="w-5.5 h-5.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 active:scale-90 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center transition-all cursor-pointer"
+            >
+              <Minus size={11} className="stroke-[2.5]" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Compact High-Density List View (Sleek height with instant (+/-) Quick Update)

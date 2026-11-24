@@ -6,7 +6,7 @@ export default function DashboardLoading() {
   return (
     <div className="min-h-screen flex flex-col bg-canvas pb-24">
       <AppHeader />
-      <main className="max-w-md mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
+      <main className="max-w-xl mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
         {/* Executive Balance Card Skeleton */}
         <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 shadow-xl shadow-blue-500/10 bg-gradient-to-br from-blue-600/90 via-blue-500/90 to-blue-600/90 animate-pulse text-white">
           <div className="flex items-center justify-between mb-2">

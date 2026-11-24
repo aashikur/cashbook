@@ -35,6 +35,11 @@
       "key": "categoryId",
       "value": "cat_4f2d8e1a-5b3c-4a9f-8e2d-1a2b3c4d5e6f",
       "type": "string"
+    },
+    {
+      "key": "inviteId",
+      "value": "org_inv_uuid_here",
+      "type": "string"
     }
   ],
   "item": [
@@ -48,8 +53,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
             },
             "description": "Checks server health and database connectivity status."
           },
@@ -59,7 +69,12 @@
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"status\": \"healthy\",\n  \"timestamp\": \"2026-11-21T18:00:00.000Z\"\n}"
             }
           ]
@@ -71,8 +86,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/overview",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "overview"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "overview"
+              ]
             },
             "description": "Platform telemetry and users directory for Super Admin (mdaashikur@gmail.com)."
           },
@@ -82,7 +104,12 @@
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"data\": {\n    \"metrics\": {\n      \"totalUsers\": 5,\n      \"totalOrganizations\": 4,\n      \"totalBooks\": 8,\n      \"totalTransactions\": 24\n    },\n    \"users\": [],\n    \"organizations\": []\n  }\n}"
             }
           ]
@@ -99,8 +126,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/auth/get-session",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "get-session"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "get-session"
+              ]
             },
             "description": "Retrieves the active user session and user profile data."
           },
@@ -110,7 +143,12 @@
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"session\": {\n    \"id\": \"session_123\",\n    \"userId\": \"user_alex_romanov\",\n    \"expiresAt\": \"2026-12-21T18:00:00.000Z\"\n  },\n  \"user\": {\n    \"id\": \"user_alex_romanov\",\n    \"name\": \"Alex Romanov\",\n    \"email\": \"alex.romanov@example.com\"\n  }\n}"
             }
           ]
@@ -119,15 +157,27 @@
           "name": "Sign In with Email",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"alex.romanov@example.com\",\n  \"password\": \"Password123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/sign-in/email",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "sign-in", "email"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-in",
+                "email"
+              ]
             },
             "description": "Authenticates user via email and password, setting secure HTTP-only session cookies."
           },
@@ -137,15 +187,27 @@
           "name": "Sign Up with Email",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"New User\",\n  \"email\": \"user@example.com\",\n  \"password\": \"SecurePass123!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/auth/sign-up/email",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "sign-up", "email"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-up",
+                "email"
+              ]
             },
             "description": "Registers a new user account."
           },
@@ -158,8 +220,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/auth/sign-out",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "auth", "sign-out"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "sign-out"
+              ]
             },
             "description": "Revokes active session cookie."
           },
@@ -177,8 +245,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs"
+              ]
             },
             "description": "Returns all organizations the current authenticated user belongs to along with their role."
           },
@@ -188,7 +262,12 @@
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"cee5c6bb-9f52-47e5-8c1b-c21c3e77f091\",\n      \"name\": \"my finance\",\n      \"description\": \"My personal expense ledger\",\n      \"currency\": \"BDT\",\n      \"role\": \"admin\",\n      \"ownerId\": \"user_alex_romanov\",\n      \"createdAt\": \"2026-11-21T05:25:00.000Z\",\n      \"updatedAt\": \"2026-11-21T05:25:00.000Z\"\n    }\n  ]\n}"
             }
           ]
@@ -197,15 +276,26 @@
           "name": "Create Organization",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Tech Enterprises Ltd\",\n  \"description\": \"Corporate accounts and operational ledger\",\n  \"currency\": \"BDT\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs"
+              ]
             },
             "description": "Creates a new organization workspace and grants the creator admin privileges."
           },
@@ -215,7 +305,12 @@
               "status": "Created",
               "code": 201,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d\",\n    \"name\": \"Tech Enterprises Ltd\",\n    \"description\": \"Corporate accounts and operational ledger\",\n    \"currency\": \"BDT\",\n    \"ownerId\": \"user_alex_romanov\",\n    \"createdAt\": \"2026-11-21T18:00:00.000Z\",\n    \"updatedAt\": \"2026-11-21T18:00:00.000Z\"\n  }\n}"
             }
           ]
@@ -227,8 +322,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}"
+              ]
             },
             "description": "Fetches metadata for a single organization, user's role, and current fiscal year summary total."
           },
@@ -238,7 +340,12 @@
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": \"cee5c6bb-9f52-47e5-8c1b-c21c3e77f091\",\n    \"name\": \"my finance\",\n    \"description\": null,\n    \"currency\": \"BDT\",\n    \"ownerId\": \"user_alex_romanov\",\n    \"role\": \"admin\",\n    \"currentYearSummary\": {\n      \"year\": 2026,\n      \"totalPaisa\": 250000,\n      \"logCount\": 1\n    }\n  }\n}"
             }
           ]
@@ -247,15 +354,27 @@
           "name": "Update Organization",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"My Personal Finance 2026\",\n  \"description\": \"Updated personal expense book\",\n  \"currency\": \"BDT\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}"
+              ]
             },
             "description": "Updates organization name, description, or default currency (Admin only)."
           },
@@ -268,8 +387,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}"
+              ]
             },
             "description": "Cascading deletion of organization workspace, expenses, and transaction logs (Owner only)."
           },
@@ -287,8 +413,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/members",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "members"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "members"
+              ]
             },
             "description": "Lists all active and invited members of the organization."
           },
@@ -298,15 +432,28 @@
           "name": "Invite / Add Member",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"teammate@example.com\",\n  \"role\": \"viewer\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/members",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "members"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "members"
+              ]
             },
             "description": "Invites a new member with 'admin' or 'viewer' role."
           },
@@ -316,15 +463,29 @@
           "name": "Update Member Role",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"role\": \"admin\",\n  \"status\": \"active\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/members/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "members", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "members",
+                "{{userId}}"
+              ]
             },
             "description": "Updates member role or changes status."
           },
@@ -337,10 +498,83 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/members/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "members", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "members",
+                "{{userId}}"
+              ]
             },
             "description": "Removes a member from the organization."
+          },
+          "response": []
+        },
+        {
+          "name": "List Pending Invitations for User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invitations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invitations"
+              ]
+            },
+            "description": "Fetch all pending workspace invitations for the currently authenticated user."
+          },
+          "response": []
+        },
+        {
+          "name": "Accept Invitation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invitations/{{inviteId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invitations",
+                "{{inviteId}}",
+                "accept"
+              ]
+            },
+            "description": "Accepts a pending organization invitation, activating membership for the user."
+          },
+          "response": []
+        },
+        {
+          "name": "Decline Invitation",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/invitations/{{inviteId}}/decline",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "invitations",
+                "{{inviteId}}",
+                "decline"
+              ]
+            },
+            "description": "Declines/revokes a pending organization invitation."
           },
           "response": []
         }
@@ -356,8 +590,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/expenses?includeArchived=false",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "expenses"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "expenses"
+              ],
               "query": [
                 {
                   "key": "includeArchived",
@@ -374,7 +616,12 @@
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": \"9c3fed1a-0338-46c1-a1b9-37b6b2951b69\",\n      \"orgId\": \"cee5c6bb-9f52-47e5-8c1b-c21c3e77f091\",\n      \"title\": \"My Expense List\",\n      \"category\": \"Personal\",\n      \"totalSpent\": \"250000.00\",\n      \"logCount\": 1,\n      \"isArchived\": false,\n      \"createdBy\": \"user_alex_romanov\",\n      \"createdByName\": \"Alex Romanov\",\n      \"updatedBy\": \"user_alex_romanov\",\n      \"updatedByName\": \"Alex Romanov\",\n      \"createdAt\": \"2026-11-21T05:20:00.000Z\",\n      \"updatedAt\": \"2026-11-21T05:26:19.235Z\"\n    }\n  ]\n}"
             }
           ]
@@ -384,8 +631,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "f47ac10b-58cc-4372-a567-0e02b2c3d479" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -393,8 +646,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/expenses",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "expenses"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "expenses"
+              ]
             },
             "description": "Creates a new ledger book under the specified organization. Supports client-generated UUID via Idempotency-Key header."
           },
@@ -407,8 +668,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/expenses/{{expenseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "expenses", "{{expenseId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "expenses",
+                "{{expenseId}}"
+              ]
             },
             "description": "Returns detailed metadata and stats for a single ledger book."
           },
@@ -418,15 +688,29 @@
           "name": "Update / Archive Expense Book",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Office Equipment & IT\",\n  \"category\": \"Technology\",\n  \"isArchived\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/expenses/{{expenseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "expenses", "{{expenseId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "expenses",
+                "{{expenseId}}"
+              ]
             },
             "description": "Updates ledger title, category, or toggles soft-archive status."
           },
@@ -439,8 +723,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/expenses/{{expenseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "expenses", "{{expenseId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "expenses",
+                "{{expenseId}}"
+              ]
             },
             "description": "Deletes ledger book. Allowed only if logCount === 0 to protect 15-year audit history."
           },
@@ -458,13 +751,37 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/expenses/{{expenseId}}/logs?limit=50&page=1",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "expenses", "{{expenseId}}", "logs"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "expenses",
+                "{{expenseId}}",
+                "logs"
+              ],
               "query": [
-                { "key": "limit", "value": "50" },
-                { "key": "page", "value": "1" },
-                { "key": "from", "value": "2026-01-01", "disabled": true },
-                { "key": "to", "value": "2026-12-31", "disabled": true }
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-12-31",
+                  "disabled": true
+                }
               ]
             },
             "description": "Fetches chronologically ordered transaction entries for a specific book."
@@ -475,7 +792,12 @@
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"data\": {\n    \"items\": [\n      {\n        \"id\": \"38699552-d467-4b8f-9b2d-68bfc7f2c3ed\",\n        \"orgId\": \"cee5c6bb-9f52-47e5-8c1b-c21c3e77f091\",\n        \"expenseId\": \"9c3fed1a-0338-46c1-a1b9-37b6b2951b69\",\n        \"amountPaisa\": 250000,\n        \"note\": \"[IN] Client advance payment\",\n        \"logDate\": \"2026-11-21\",\n        \"fiscalYear\": 2026,\n        \"fiscalMonth\": 11,\n        \"attachments\": [],\n        \"createdAt\": \"2026-11-21T05:26:19.235Z\"\n      }\n    ],\n    \"page\": 1,\n    \"limit\": 50,\n    \"hasMore\": false\n  }\n}"
             }
           ]
@@ -487,16 +809,48 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/logs?year=2026&month=11&page=1&limit=50",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "logs"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "logs"
+              ],
               "query": [
-                { "key": "year", "value": "2026" },
-                { "key": "month", "value": "11" },
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "50" },
-                { "key": "category", "value": "Rent", "disabled": true },
-                { "key": "date", "value": "2026-11-21", "disabled": true },
-                { "key": "expenseId", "value": "{{expenseId}}", "disabled": true }
+                {
+                  "key": "year",
+                  "value": "2026"
+                },
+                {
+                  "key": "month",
+                  "value": "11"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "category",
+                  "value": "Rent",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "2026-11-21",
+                  "disabled": true
+                },
+                {
+                  "key": "expenseId",
+                  "value": "{{expenseId}}",
+                  "disabled": true
+                }
               ]
             },
             "description": "Paginated query across all books within an organization."
@@ -508,8 +862,14 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Idempotency-Key", "value": "e2f1a0b3-4c5d-6e7f-8a9b-0c1d2e3f4a5b" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "e2f1a0b3-4c5d-6e7f-8a9b-0c1d2e3f4a5b"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -517,8 +877,18 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/expenses/{{expenseId}}/logs",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "expenses", "{{expenseId}}", "logs"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "expenses",
+                "{{expenseId}}",
+                "logs"
+              ]
             },
             "description": "Records an expense or cash-in entry. Atomically increments parent book totalSpent and logCount."
           },
@@ -531,8 +901,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/logs/{{logId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "logs", "{{logId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "logs",
+                "{{logId}}"
+              ]
             },
             "description": "Fetches a single transaction log with parent expense metadata."
           },
@@ -542,15 +921,29 @@
           "name": "Update Transaction Log",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"type\": \"out\",\n  \"category\": \"Shopping\",\n  \"amountPaisa\": 55000,\n  \"note\": \"Updated: Office stationery & toner cartridge\",\n  \"logDate\": \"2026-11-21\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/logs/{{logId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "logs", "{{logId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "logs",
+                "{{logId}}"
+              ]
             },
             "description": "Modifies amount or note. Automatically recalibrates running balance delta on the parent ledger."
           },
@@ -563,8 +956,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/logs/{{logId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "logs", "{{logId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "logs",
+                "{{logId}}"
+              ]
             },
             "description": "Soft-deletes transaction by setting deletedAt timestamp and decrementing parent book running total."
           },
@@ -579,15 +981,29 @@
           "name": "Generate Presigned Upload URL",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"fileName\": \"receipt_invoice_101.webp\",\n  \"mimeType\": \"image/webp\",\n  \"sizeBytes\": 154200,\n  \"fiscalYear\": 2026,\n  \"fiscalMonth\": 11\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/uploads/presign",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "uploads", "presign"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "uploads",
+                "presign"
+              ]
             },
             "description": "Generates short-lived presigned PUT URL for zero-egress client direct upload to Cloudflare R2."
           },
@@ -597,7 +1013,12 @@
               "status": "OK",
               "code": 200,
               "_postman_previewlanguage": "json",
-              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
               "body": "{\n  \"success\": true,\n  \"data\": {\n    \"uploadUrl\": \"https://cashbook.1dc33418b5a9f7466b0a676f22e11928.r2.cloudflarestorage.com/orgs/cee5c6bb-9f52-47e5-8c1b-c21c3e77f091/2026/11/sample.webp?X-Amz-Algorithm=AWS4-HMAC-SHA256...\",\n    \"key\": \"orgs/cee5c6bb-9f52-47e5-8c1b-c21c3e77f091/2026/11/sample.webp\",\n    \"publicUrl\": \"https://pub-4a4ed8f08b0442bcb85cbba1b76e35ea.r2.dev/orgs/cee5c6bb-9f52-47e5-8c1b-c21c3e77f091/2026/11/sample.webp\"\n  }\n}"
             }
           ]
@@ -610,15 +1031,35 @@
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "file", "type": "file", "src": [] },
-                { "key": "fiscalYear", "value": "2026", "type": "text" },
-                { "key": "fiscalMonth", "value": "11", "type": "text" }
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "fiscalYear",
+                  "value": "2026",
+                  "type": "text"
+                },
+                {
+                  "key": "fiscalMonth",
+                  "value": "11",
+                  "type": "text"
+                }
               ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/uploads",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "uploads"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "uploads"
+              ]
             },
             "description": "Fallback endpoint that receives file via multipart/form-data and streams directly into R2 if browser client PUT faces CORS restrictions."
           },
@@ -636,8 +1077,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/sync?since=2026-11-20T00:00:00.000Z",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "sync"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "sync"
+              ],
               "query": [
                 {
                   "key": "since",
@@ -657,8 +1106,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/reports/summary?year=2026",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "reports", "summary"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "reports",
+                "summary"
+              ],
               "query": [
                 {
                   "key": "year",
@@ -683,8 +1141,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "categories"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "categories"
+              ]
             },
             "description": "Retrieves all custom categories defined for an organization."
           },
@@ -694,15 +1160,28 @@
           "name": "Create Custom Category",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Vehicle EMI\",\n  \"icon\": \"Car\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/categories",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "categories"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "categories"
+              ]
             },
             "description": "Creates a new custom category for the workspace."
           },
@@ -712,15 +1191,29 @@
           "name": "Rename Category",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Car Installment & Maintenance\",\n  \"icon\": \"Car\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/categories/{{categoryId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "categories", "{{categoryId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "categories",
+                "{{categoryId}}"
+              ]
             },
             "description": "Renames a custom category. Atomically updates all historical daily logs tagged with the previous name."
           },
@@ -733,8 +1226,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/orgs/{{orgId}}/categories/{{categoryId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "orgs", "{{orgId}}", "categories", "{{categoryId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "orgs",
+                "{{orgId}}",
+                "categories",
+                "{{categoryId}}"
+              ]
             },
             "description": "Deletes custom category. Safely reassigns all past transaction logs to 'General' to prevent financial data loss."
           },

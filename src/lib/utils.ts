@@ -91,3 +91,58 @@ export function getFiscalPeriod(date: Date = new Date()): {
 export function toLogDate(date: Date = new Date()): string {
   return date.toISOString().slice(0, 10); // YYYY-MM-DD
 }
+
+export function isLogCashIn(log: { type?: string; note?: string }): boolean {
+  if (log.type === "in") return true;
+  if (log.type === "out") return false;
+  const note = (log.note || "").toLowerCase();
+  return (
+    note.startsWith("[in]") ||
+    note.includes("freelance") ||
+    note.includes("salary") ||
+    note.includes("client") ||
+    note.includes("cash in") ||
+    note.includes("income") ||
+    note.includes("deposit")
+  );
+}
+
+export function computeBookBalancePaisa(
+  expense: {
+    id: string;
+    title: string;
+    category?: string;
+    totalSpent: number | string;
+  },
+  bookLogs?: Array<{ type?: string; note?: string; amountPaisa: number }>
+): number {
+  if (bookLogs && bookLogs.length > 0) {
+    let net = 0;
+    for (const log of bookLogs) {
+      if (isLogCashIn(log)) {
+        net += log.amountPaisa;
+      } else {
+        net -= log.amountPaisa;
+      }
+    }
+    return net;
+  }
+
+  const paisa =
+    typeof expense.totalSpent === "string"
+      ? parseInt(expense.totalSpent, 10) || 0
+      : expense.totalSpent;
+
+  const isIncomeFallback =
+    expense.category?.toLowerCase() === "income" ||
+    expense.category?.toLowerCase() === "revenue" ||
+    expense.category?.toLowerCase() === "investment" ||
+    expense.title.toLowerCase().includes("salary") ||
+    expense.title.toLowerCase().includes("income") ||
+    expense.title.toLowerCase().includes("freelance") ||
+    expense.title.toLowerCase().includes("deposit") ||
+    expense.title.toLowerCase().includes("savings");
+
+  return isIncomeFallback ? Math.abs(paisa) : -Math.abs(paisa);
+}
+

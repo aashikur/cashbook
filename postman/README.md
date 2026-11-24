@@ -42,7 +42,12 @@ The collection comes pre-configured with the following variables:
 | **Organizations** | `POST` | `/api/v1/orgs` | Authenticated | Create a new organization |
 | **Organizations** | `GET` | `/api/v1/orgs/:orgId` | Member | Get active organization metadata |
 | **Members** | `GET` | `/api/v1/orgs/:orgId/members` | Member | List organization members |
-| **Members** | `POST` | `/api/v1/orgs/:orgId/members/invite` | Admin | Invite a user via email |
+| **Members** | `POST` | `/api/v1/orgs/:orgId/members` | Admin | Invite a user via email (creates pending invite) |
+| **Members** | `PATCH` | `/api/v1/orgs/:orgId/members/:userId` | Admin | Update member role (`admin` vs `viewer`) |
+| **Members** | `DELETE` | `/api/v1/orgs/:orgId/members/:userId` | Admin | Remove member from organization |
+| **Invitations** | `GET` | `/api/v1/invitations` | Authenticated | List all pending invitations for user |
+| **Invitations** | `POST` | `/api/v1/invitations/:inviteId/accept` | Authenticated | Accept invitation and activate membership |
+| **Invitations** | `POST` | `/api/v1/invitations/:inviteId/decline` | Authenticated | Decline / revoke pending invitation |
 | **Ledgers** | `GET` | `/api/v1/orgs/:orgId/expenses` | Member | List all ledger books |
 | **Ledgers** | `POST` | `/api/v1/orgs/:orgId/expenses` | Admin | Create ledger book |
 | **Ledgers** | `GET` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Member | Get ledger book details |
