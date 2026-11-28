@@ -59,8 +59,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
       localDb.dailyLogs
         .where("expenseId")
         .equals(expenseId)
-        .reverse()
-        .sortBy("logDate"),
+        .toArray(),
     [expenseId]
   );
 
@@ -234,8 +233,29 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     return { from: "", to: "" };
   }
 
+  // Deterministic multi-tier chronological sorting:
+  // Primary: logDate DESC (latest calendar date first)
+  // Secondary: createdAt DESC (latest entry timestamp with milliseconds first)
+  // Tertiary: id DESC (deterministic tie-breaker)
+  const chronologicallySortedLogs = useMemo(() => {
+    if (!rawLogs || rawLogs.length === 0) return [];
+    return [...rawLogs].sort((a, b) => {
+      // 1. Primary: compare calendar date (YYYY-MM-DD)
+      const dateComparison = b.logDate.localeCompare(a.logDate);
+      if (dateComparison !== 0) return dateComparison;
+
+      // 2. Secondary: compare creation timestamp (ISO 8601)
+      const timeA = new Date(a.createdAt || 0).getTime();
+      const timeB = new Date(b.createdAt || 0).getTime();
+      if (timeB !== timeA) return timeB - timeA;
+
+      // 3. Fallback tie-breaker
+      return (b.id || "").localeCompare(a.id || "");
+    });
+  }, [rawLogs]);
+
   // 1. Date Range Filtered Logs
-  const dateFilteredLogs = rawLogs.filter((log) => {
+  const dateFilteredLogs = chronologicallySortedLogs.filter((log) => {
     if (fromDate && log.logDate < fromDate) return false;
     if (toDate && log.logDate > toDate) return false;
     return true;
