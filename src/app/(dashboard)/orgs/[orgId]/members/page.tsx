@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 import AppHeader from "@/components/layout/AppHeader";
+import BottomNav from "@/components/layout/BottomNav";
 import { useAppStore, useStoreHydrated } from "@/store/app-store";
 import { confirmDialog, alertDialog } from "@/store/confirm-store";
 import {
@@ -191,7 +192,7 @@ export default function MembersPage({ params }: PageProps) {
 
   if (!showSkeleton && orgNotFound) {
     return (
-      <div className="min-h-screen flex flex-col bg-canvas">
+      <div className="min-h-screen flex flex-col bg-canvas pb-24">
         <AppHeader />
         <main className="max-w-xl mx-auto w-full px-4 py-20 flex flex-col items-center justify-center text-center gap-4 flex-1">
           <div className="w-16 h-16 rounded-3xl bg-primary-light border border-primary-border flex items-center justify-center text-primary shadow-sm">
@@ -211,12 +212,13 @@ export default function MembersPage({ params }: PageProps) {
             <span>Back to Dashboard</span>
           </Link>
         </main>
+        <BottomNav />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-canvas pb-16">
+    <div className="min-h-screen flex flex-col bg-canvas pb-24">
       <AppHeader />
 
       <main className="max-w-xl mx-auto w-full px-4 pt-5 flex flex-col gap-5 flex-1">
@@ -450,6 +452,7 @@ export default function MembersPage({ params }: PageProps) {
           )}
         </section>
       </main>
+      <BottomNav />
     </div>
   );
 }

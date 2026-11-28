@@ -49,9 +49,7 @@ export const orgMembers = pgTable(
     orgId: text("org_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
+    userId: text("user_id").notNull(),
     userEmail: text("user_email").notNull(), // denormalized for fast listing
     role: memberRoleEnum("role").notNull().default("viewer"),
     status: inviteStatusEnum("status").notNull().default("pending"),

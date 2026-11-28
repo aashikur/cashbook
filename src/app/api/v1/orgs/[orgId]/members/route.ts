@@ -94,6 +94,7 @@ export async function POST(req: NextRequest, { params }: RouteProps) {
 
     return NextResponse.json({ success: true, data: member }, { status: 201 });
   } catch (err: unknown) {
+    console.error("Error inviting member:", err);
     if (err instanceof z.ZodError) {
       return NextResponse.json(
         { success: false, error: err.issues[0].message },

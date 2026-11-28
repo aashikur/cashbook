@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import BookCard from "./BookCard";
 import { useAppStore } from "@/store/app-store";
 import {
@@ -46,28 +46,22 @@ export default function ExpenseLedgerList({
   const currency = activeOrg?.currency || "BDT";
 
   // Persist user sort preference in localStorage (internal fallback if uncontrolled)
-  const [internalSortOption, setInternalSortOption] = useState<BookSortOption>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cashbook_book_sort") as BookSortOption;
-      if (saved === "updated" || saved === "alphabetical" || saved === "created") {
-        return saved;
-      }
-    }
-    return "updated";
-  });
-
+  const [internalSortOption, setInternalSortOption] = useState<BookSortOption>("updated");
   const sortOption = controlledSortOption ?? internalSortOption;
 
   // Persist user view mode (grid vs columns vs compact list) in localStorage
-  const [viewMode, setViewMode] = useState<BookViewMode>(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("cashbook_book_view") as BookViewMode;
-      if (saved === "grid" || saved === "columns" || saved === "list") {
-        return saved;
-      }
+  const [viewMode, setViewMode] = useState<BookViewMode>("grid");
+
+  useEffect(() => {
+    const savedSort = localStorage.getItem("cashbook_book_sort") as BookSortOption;
+    if (savedSort === "updated" || savedSort === "alphabetical" || savedSort === "created") {
+      setInternalSortOption(savedSort);
     }
-    return "grid";
-  });
+    const savedView = localStorage.getItem("cashbook_book_view") as BookViewMode;
+    if (savedView === "grid" || savedView === "columns" || savedView === "list") {
+      setViewMode(savedView);
+    }
+  }, []);
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 

@@ -161,9 +161,17 @@ a:active:not(:disabled) {
    - **Total In**: Solid Blue card (`#2563EB`) displaying total inflow amount with dropdown indicator.
    - **Total Out**: Solid Red card (`#DC2626`) displaying total outflow amount with dropdown indicator.
 3. **Transactions Stream**: Chronological list of logs with category icon (supermarket, restaurant, bookshop, freelance), relative time ("2 min ago"), and formatted cash values (`+15000` / `-500`).
-4. **Sticky Dual Action Bar**: Fixed bottom bar featuring two equal-width CTA buttons:
+4. **Sticky Dual Action Bar**: Fixed bottom bar featuring two equal-width CTA buttons (auto-replaces `BottomNav` on `/expenses/` routes):
    - `+ Cash In` (Vibrant green: `.btn-cash-in`)
    - `- Cash Out` (Vibrant red: `.btn-cash-out`)
+
+### Screen 3: Settings Hub (`/orgs/[orgId]/settings`) & Primary Nav Consistency
+1. **Persistent `BottomNav` across Hub Routes**: Sticky bottom tabs (**Books**, **Transactions** → `/reports`, **Settings** → `/settings`) remain visible across `/dashboard`, `/orgs/[orgId]/reports`, `/orgs/[orgId]/settings`, and `/orgs/[orgId]/members`, while automatically hiding on `/expenses/` drill-down routes.
+2. **Grouped Hub Layout**: Clean, initials-based account banner (zero default/placeholder images) followed by grouped settings rows:
+   - **Workspace**: Business Profile (`EditOrgModal`, Admin-only), Categories (`ManageCategoriesModal`, Admin-only), Team & Access Control (`/orgs/[orgId]/members`).
+   - **Account**: Your Profile (`UserProfileModal`).
+   - **System** (Super Admin only): System Health (`/health`), Super Admin Console (`/admin`).
+   - **Session**: Sign Out with promise-based confirmation dialog.
 
 ---
 

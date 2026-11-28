@@ -12,7 +12,6 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "node scripts/seed-mock-data.js",
-    "db:clean-seed": "node scripts/clean-mock-data.js",
     "assets:generate": "node scripts/generate-assets.js"
   },
   "dependencies": {

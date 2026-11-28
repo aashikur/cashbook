@@ -55,12 +55,14 @@ sequenceDiagram
 To ensure mobile devices without an internet connection can boot into the app immediately rather than encountering browser connection errors:
 
 - **Service Worker (`public/sw.js`)**:
+  - Uses versioned cache `cashbook-pwa-v2` (auto-purging older caches on `activate`).
   - Pre-caches core application shell (`/dashboard`, `/`, `/manifest.json`, app icons).
   - Employs **Network-First with Cache Fallback** for navigational requests: if offline, the cached app shell HTML is served immediately.
-  - Employs **Cache-First** for immutable Next.js static assets (`/_next/static/*`), guaranteeing instantaneous UI rendering.
+  - Employs **Cache-First** for immutable Next.js static assets (`/_next/static/*`), guaranteeing instantaneous UI rendering in production.
   - Bypasses `/api/*` endpoints so that Dexie.js (`localDb`) and `syncQueue` serve as the singular local-first source of truth for all business data.
 - **Client Lifecycle Registration (`src/components/pwa/ServiceWorkerRegister.tsx`)**:
-  - Automatically registers the Service Worker on window load in `src/app/layout.tsx`.
+  - Registers `/sw.js` **only in production** (`process.env.NODE_ENV === "production"`).
+  - In development, automatically unregisters any existing Service Worker and purges `cashbook-*` caches so Turbopack HMR chunk updates are never served stale assets.
 - **Full Offline Mutation Support (`CREATE`, `UPDATE`, `DELETE`)**:
   - Offline mutations across books and logs (create, edit note/amount/date, delete log) optimistically mutate Dexie IndexedDB and enqueue into `localDb.syncQueue`.
   - When connection is restored (`window.online`), `processSyncQueue()` flushes pending tasks to the server.

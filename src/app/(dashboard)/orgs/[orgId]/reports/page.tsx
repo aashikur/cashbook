@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 import AppHeader from "@/components/layout/AppHeader";
+import BottomNav from "@/components/layout/BottomNav";
 import { useAppStore } from "@/store/app-store";
 import { formatCurrency } from "@/lib/utils";
 import {
@@ -115,7 +116,7 @@ export default function ReportsPage({ params }: PageProps) {
   const yearOptions = Array.from({ length: 15 }, (_, i) => currentYear - i);
 
   return (
-    <div className="min-h-screen flex flex-col bg-canvas">
+    <div className="min-h-screen flex flex-col bg-canvas pb-24">
       <AppHeader />
 
       <main className="max-w-xl mx-auto w-full px-4 py-6 flex flex-col gap-6 flex-1">
@@ -242,6 +243,7 @@ export default function ReportsPage({ params }: PageProps) {
           </div>
         </div>
       </main>
+      <BottomNav />
     </div>
   );
 }

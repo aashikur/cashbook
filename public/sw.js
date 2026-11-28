@@ -1,6 +1,6 @@
 // CashBook Progressive Web App Service Worker
-// Version: 1.0.1
-const CACHE_NAME = "cashbook-pwa-v1";
+// Version: 1.0.2
+const CACHE_NAME = "cashbook-pwa-v2";
 
 // Core shell and static assets to pre-cache on install
 const PRECACHE_ASSETS = [

@@ -8,30 +8,37 @@ import EditLogModal from "@/components/dashboard/EditLogModal";
 import EditExpenseModal from "@/components/dashboard/EditExpenseModal";
 import LogDetailsModal from "@/components/dashboard/LogDetailsModal";
 import BookDetailsModal from "@/components/dashboard/BookDetailsModal";
+import LedgerSummaryCard from "@/components/dashboard/LedgerSummaryCard";
+import ExportStatementModal from "@/components/dashboard/ExportStatementModal";
 import { useAppStore } from "@/store/app-store";
 import { useOrgPermissions } from "@/hooks/useOrgPermissions";
 import { confirmDialog } from "@/store/confirm-store";
 import { localDb, LocalDailyLog } from "@/lib/local-db";
 import { enqueueSyncItem } from "@/lib/sync-service";
-import { formatCleanAmount, formatCurrency, formatDate, formatTime } from "@/lib/utils";
-import { getCategoryIcon } from "@/lib/categories";
+import {
+  formatCleanAmount,
+  formatDate,
+  formatTime,
+  isLogCashIn,
+} from "@/lib/utils";
 import {
   Archive,
   ArrowLeft,
   Calendar,
+  Check,
   ChevronDown,
   Edit2,
-  Filter,
+  FileText,
   Image as ImageIcon,
   Info,
   Minus,
   MoreVertical,
   Plus,
   RotateCcw,
+  Search,
   Settings,
+  SlidersHorizontal,
   Trash2,
-  TrendingDown,
-  TrendingUp,
   UserPlus,
   X,
 } from "lucide-react";
@@ -90,13 +97,20 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   const [isNotFound, setIsNotFound] = useState(false);
 
   const [activeReceiptUrl, setActiveReceiptUrl] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [entryTypeFilter, setEntryTypeFilter] = useState<"all" | "in" | "out">("all");
+  const [memberFilter, setMemberFilter] = useState<string>("All");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("All");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  const [pageSize, setPageSize] = useState<number | "All">(10);
+  const [pageSize, setPageSize] = useState<number | "All">("All");
   const [isLimitFiltered, setIsLimitFiltered] = useState<boolean>(false);
   const [isHeaderMenuOpen, setIsHeaderMenuOpen] = useState(false);
   const [isDatePopoverOpen, setIsDatePopoverOpen] = useState(false);
+  const [isEntryTypeOpen, setIsEntryTypeOpen] = useState(false);
+  const [isMemberOpen, setIsMemberOpen] = useState(false);
+  const [isCategoryOpen, setIsCategoryOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
   const [isEditExpenseOpen, setIsEditExpenseOpen] = useState(false);
   const [isBookDetailsOpen, setIsBookDetailsOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<LocalDailyLog | null>(null);
@@ -104,20 +118,33 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
   const menuRef = useRef<HTMLDivElement>(null);
   const datePopoverRef = useRef<HTMLDivElement>(null);
+  const entryTypeRef = useRef<HTMLDivElement>(null);
+  const memberRef = useRef<HTMLDivElement>(null);
+  const categoryRef = useRef<HTMLDivElement>(null);
   const currency = activeOrg?.currency || "USD";
 
   // Effective expense and logs (Dexie has priority for 0ms, server augments)
   const expense = cachedExpense || serverExpense;
-  const rawLogs = cachedLogs ?? [];
+  const rawLogs = useMemo(() => cachedLogs ?? [], [cachedLogs]);
 
   // Close menus on click outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (menuRef.current && !menuRef.current.contains(target)) {
         setIsHeaderMenuOpen(false);
       }
-      if (datePopoverRef.current && !datePopoverRef.current.contains(event.target as Node)) {
+      if (datePopoverRef.current && !datePopoverRef.current.contains(target)) {
         setIsDatePopoverOpen(false);
+      }
+      if (entryTypeRef.current && !entryTypeRef.current.contains(target)) {
+        setIsEntryTypeOpen(false);
+      }
+      if (memberRef.current && !memberRef.current.contains(target)) {
+        setIsMemberOpen(false);
+      }
+      if (categoryRef.current && !categoryRef.current.contains(target)) {
+        setIsCategoryOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -285,61 +312,129 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     });
   }, [rawLogs]);
 
-  // 1. Date Range Filtered Logs
-  const dateFilteredLogs = useMemo(() => {
+  // O(N) chronological running balance map (oldest -> newest)
+  const runningBalanceMap = useMemo(() => {
+    const map = new Map<string, number>();
+    if (chronologicallySortedLogs.length === 0) return map;
+    let running = 0;
+    for (let i = chronologicallySortedLogs.length - 1; i >= 0; i--) {
+      const log = chronologicallySortedLogs[i];
+      running += isLogCashIn(log) ? log.amountPaisa || 0 : -(log.amountPaisa || 0);
+      map.set(log.id, running);
+    }
+    return map;
+  }, [chronologicallySortedLogs]);
+
+  // Unified multi-criteria filter (date, entry type, member, category, search)
+  const filteredLogs = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
     return chronologicallySortedLogs.filter((log) => {
       if (fromDate && log.logDate < fromDate) return false;
       if (toDate && log.logDate > toDate) return false;
+
+      if (entryTypeFilter !== "all") {
+        const isIn = isLogCashIn(log);
+        if (entryTypeFilter === "in" && !isIn) return false;
+        if (entryTypeFilter === "out" && isIn) return false;
+      }
+
+      if (memberFilter !== "All") {
+        const memberName = log.loggedByName || "You";
+        if (memberName.toLowerCase() !== memberFilter.toLowerCase()) return false;
+      }
+
+      if (selectedCategoryFilter !== "All") {
+        if (
+          (log.category || "General").toLowerCase() !==
+          selectedCategoryFilter.toLowerCase()
+        ) {
+          return false;
+        }
+      }
+
+      if (query) {
+        const cleanNote = (log.note || "").replace(/^\[IN\]\s*/, "").toLowerCase();
+        const cat = (log.category || "").toLowerCase();
+        const amtStr = formatCleanAmount((log.amountPaisa || 0) / 100).toLowerCase();
+        const rawAmtStr = String((log.amountPaisa || 0) / 100);
+        if (
+          !cleanNote.includes(query) &&
+          !cat.includes(query) &&
+          !amtStr.includes(query) &&
+          !rawAmtStr.includes(query)
+        ) {
+          return false;
+        }
+      }
+
       return true;
     });
-  }, [chronologicallySortedLogs, fromDate, toDate]);
+  }, [
+    chronologicallySortedLogs,
+    fromDate,
+    toDate,
+    entryTypeFilter,
+    memberFilter,
+    selectedCategoryFilter,
+    searchQuery,
+  ]);
 
-  // 2. Category Filter
-  const categoryFilteredLogs = useMemo(() => {
-    return dateFilteredLogs.filter((log) => {
-      if (selectedCategoryFilter === "All") return true;
-      return (
-        (log.category || "General").toLowerCase() ===
-        selectedCategoryFilter.toLowerCase()
-      );
-    });
-  }, [dateFilteredLogs, selectedCategoryFilter]);
-
-  // 3. Page Size Limit
+  // Page Size Limit
   const paginatedLogs = useMemo(() => {
     return pageSize === "All"
-      ? categoryFilteredLogs
-      : categoryFilteredLogs.slice(0, Number(pageSize));
-  }, [categoryFilteredLogs, pageSize]);
+      ? filteredLogs
+      : filteredLogs.slice(0, Number(pageSize));
+  }, [filteredLogs, pageSize]);
+
+  // Group paginated logs by calendar date (e.g. "21 May 2025")
+  const groupedLogs = useMemo(() => {
+    const groups: Array<{ dateKey: string; label: string; items: LocalDailyLog[] }> = [];
+    const groupMap = new Map<string, LocalDailyLog[]>();
+
+    for (const log of paginatedLogs) {
+      const key = log.logDate || "Unknown";
+      let list = groupMap.get(key);
+      if (!list) {
+        list = [];
+        groupMap.set(key, list);
+        let label = key;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(key)) {
+          const [y, m, d] = key.split("-").map(Number);
+          label = new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          });
+        }
+        groups.push({ dateKey: key, label, items: list });
+      }
+      list.push(log);
+    }
+
+    return groups;
+  }, [paginatedLogs]);
 
   // Determine if active filter is applied
   const isFilterActive = Boolean(
+    searchQuery.trim() ||
     fromDate ||
     toDate ||
+    entryTypeFilter !== "all" ||
+    memberFilter !== "All" ||
     selectedCategoryFilter !== "All" ||
     isLimitFiltered
   );
 
   // Top Calculation (O(N) single-pass memoized summary):
   // - If NO filter is applied: calculates the overall whole ledger (all-time)
-  // - If ANY filter (date range, category, or selected limit) is applied: calculates ONLY for that filtered subset
+  // - If ANY filter is applied: calculates ONLY for that filtered subset
   const logsForSummary = isFilterActive ? paginatedLogs : rawLogs;
 
   const { totalInPaisa, totalOutPaisa, netBalancePaisa } = useMemo(() => {
     let inPaisa = 0;
     let outPaisa = 0;
     for (const l of logsForSummary) {
-      let isIn = l.type === "in";
-      if (!l.type) {
-        const lower = (l.note || "").toLowerCase();
-        isIn =
-          lower.startsWith("[in]") ||
-          lower.includes("freelance") ||
-          lower.includes("salary") ||
-          lower.includes("income") ||
-          lower.includes("cash in");
-      }
-      if (isIn) {
+      if (isLogCashIn(l)) {
         inPaisa += l.amountPaisa || 0;
       } else {
         outPaisa += l.amountPaisa || 0;
@@ -354,16 +449,19 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
   // Clear all filters handler
   function handleClearAllFilters() {
+    setSearchQuery("");
     setFromDate("");
     setToDate("");
+    setEntryTypeFilter("all");
+    setMemberFilter("All");
     setSelectedCategoryFilter("All");
-    setPageSize(10);
+    setPageSize("All");
     setIsLimitFiltered(false);
   }
 
-  // Formatted date range label for Shadcn-style trigger button
+  // Formatted date range label
   const dateRangeLabel = useMemo(() => {
-    if (!fromDate && !toDate) return "Date range";
+    if (!fromDate && !toDate) return "Select Date";
     if (fromDate && toDate) {
       if (fromDate === toDate) return formatDate(fromDate);
       return `${formatDate(fromDate)} - ${formatDate(toDate)}`;
@@ -372,10 +470,22 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     return `Until ${formatDate(toDate)}`;
   }, [fromDate, toDate]);
 
-  // Extract distinct categories present in this ledger
-  const availableCategories = Array.from(
-    new Set(rawLogs.map((l) => l.category || "General"))
-  ).filter(Boolean);
+  // Extract distinct categories and members present in this ledger
+  const availableCategories = useMemo(
+    () =>
+      Array.from(new Set(rawLogs.map((l) => l.category || "General"))).filter(
+        Boolean
+      ),
+    [rawLogs]
+  );
+
+  const availableMembers = useMemo(
+    () =>
+      Array.from(
+        new Set(rawLogs.map((l) => l.loggedByName || "You"))
+      ).filter(Boolean),
+    [rawLogs]
+  );
 
   // Optimistic log deletion
   async function handleDeleteLog(logId: string) {
@@ -519,35 +629,58 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   return (
     <div className="min-h-screen flex flex-col bg-canvas pb-28">
       {/* Top Header */}
-      <header className="sticky top-0 z-40 bg-surface border-b border-border-subtle px-4 py-3">
-        <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      <header className="sticky top-0 z-40 bg-surface border-b border-border-subtle">
+        <div className="max-w-xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
             <Link
               href="/dashboard"
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-txt-main hover:bg-subtle active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
               title="Back to Dashboard"
             >
               <ArrowLeft size={20} />
             </Link>
-            <h1 className="text-base font-bold text-txt-main tracking-tight truncate max-w-[200px]">
-              {expense?.title || "Book Ledger"}
-            </h1>
+            <button
+              type="button"
+              onClick={() =>
+                canEditBook
+                  ? setIsEditExpenseOpen(true)
+                  : setIsBookDetailsOpen(true)
+              }
+              className="flex flex-col items-start text-left min-w-0 py-0.5 px-1 rounded-lg hover:bg-subtle/60 transition-colors cursor-pointer"
+            >
+              <h1 className="text-base font-bold text-txt-main tracking-tight truncate max-w-[180px] sm:max-w-[260px] leading-tight">
+                {expense?.title || "Book Ledger"}
+              </h1>
+              <span className="text-[11px] text-txt-muted truncate leading-tight">
+                Tap here for Book settings
+              </span>
+            </button>
           </div>
 
-          <div className="flex items-center gap-1 relative" ref={menuRef}>
+          <div className="flex items-center gap-0.5 relative shrink-0" ref={menuRef}>
             <Link
               href={`/orgs/${orgId}/members`}
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-primary hover:bg-primary-light active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
               title="Team Members"
             >
               <UserPlus size={19} />
             </Link>
 
+            <button
+              type="button"
+              onClick={() => setIsExportOpen(true)}
+              className="w-11 h-11 rounded-full flex items-center justify-center text-primary hover:bg-primary-light active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
+              title="Export PDF / CSV Statement"
+              aria-label="Export PDF Statement"
+            >
+              <FileText size={19} />
+            </button>
+
             {/* 3-Dot Action Menu with 48x48 Mobile Native Target */}
             <button
               type="button"
               onClick={() => setIsHeaderMenuOpen((prev) => !prev)}
-              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-primary hover:bg-primary-light active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
               title="More Options"
               aria-label="More Options"
             >
@@ -556,7 +689,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
             {/* Header Dropdown Popover */}
             {isHeaderMenuOpen && (
-              <div className="absolute right-0 top-10 w-48 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute right-0 top-12 w-48 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -598,400 +731,523 @@ export default function ExpenseDetailPage({ params }: PageProps) {
             )}
           </div>
         </div>
-      </header>
 
-      <main className="max-w-xl mx-auto w-full px-4 pt-4 flex flex-col gap-5 flex-1">
-        {/* Top Single Card (Modern Royal Blue Gradient, Matching Image 2) */}
-        <div className="relative overflow-hidden rounded-3xl p-5 sm:p-6 text-white shadow-xl shadow-blue-500/15 bg-linear-to-br from-blue-600 via-blue-500 to-blue-600 transition-all">
-          {/* Decorative ambient blurred circles */}
-          <div className="absolute -right-6 -bottom-6 w-32 h-32 rounded-full bg-white/10 blur-xl pointer-events-none" />
-          <div className="absolute right-12 -top-8 w-24 h-24 rounded-full bg-white/10 blur-lg pointer-events-none" />
-
-          {/* Top Row: Current Balance label + Filter status tag + Trending Icon */}
-          <div className="flex items-center justify-between mb-1.5 relative z-10">
-            <div className="flex items-center gap-2">
-              <span className="text-xs sm:text-sm font-medium text-white/80">
-                Current Balance
-              </span>
-              {isFilterActive && (
-                <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full font-semibold text-white backdrop-blur-xs">
-                  Filtered ({logsForSummary.length})
-                </span>
-              )}
-            </div>
-            <div className="p-2 rounded-full bg-white/15 backdrop-blur-xs text-white">
-              {netBalancePaisa >= 0 ? (
-                <TrendingUp size={20} className="stroke-[2.5]" />
-              ) : (
-                <TrendingDown size={20} className="stroke-[2.5]" />
-              )}
-            </div>
-          </div>
-
-          {/* Middle: Big Balance Display */}
-          <div className="text-3xl sm:text-4xl font-extrabold tracking-tight font-sans my-1 text-white relative z-10">
-            {netBalancePaisa < 0 ? "-" : ""}
-            {formatCurrency(Math.abs(netBalancePaisa) / 100, currency)}
-          </div>
-
-          {/* Bottom Row: Income & Expense inline breakdown */}
-          <div className="flex items-center gap-2.5 mt-3 pt-3 border-t border-white/15 text-xs sm:text-sm text-white/90 font-medium relative z-10">
-            <span>Income {formatCurrency(totalInPaisa / 100, currency)}</span>
-            <span className="text-white/40">|</span>
-            <span>Expense {formatCurrency(totalOutPaisa / 100, currency)}</span>
+        {/* Reference-style Search Bar */}
+        <div className="border-t border-border-subtle bg-surface">
+          <div className="max-w-xl mx-auto px-4 py-2 flex items-center gap-2.5">
+            <Search size={17} className="text-primary shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search by remark or amount"
+              className="flex-1 bg-transparent text-sm text-txt-main placeholder:text-txt-muted focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="w-7 h-7 rounded-full flex items-center justify-center text-txt-muted hover:text-txt-main hover:bg-subtle cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
+      </header>
 
-        {/* Transactions Section */}
-        <div className="flex flex-col gap-3">
-          {/* Header & Right Controls (Date Range & Limit Selector) */}
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between px-0.5">
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-txt-main tracking-tight">
-                  Transactions
-                </h2>
-              </div>
+      <main className="max-w-xl mx-auto w-full px-4 pt-3 flex flex-col gap-3.5 flex-1">
+        {/* Horizontal Filter Chips Row (Reference UI Style) */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {/* Filter / Reset Icon Chip */}
+          <button
+            type="button"
+            onClick={() => {
+              if (isFilterActive) handleClearAllFilters();
+            }}
+            className={`relative shrink-0 h-9 px-3 rounded-full border flex items-center justify-center gap-1.5 text-xs font-semibold transition-all cursor-pointer ${
+              isFilterActive
+                ? "bg-primary-light border-primary text-primary"
+                : "bg-surface border-border-default text-primary hover:bg-subtle"
+            }`}
+            title={isFilterActive ? "Reset all filters" : "Filters"}
+          >
+            <SlidersHorizontal size={14} />
+            {isFilterActive && (
+              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            )}
+          </button>
 
-              {/* Right Filter Controls */}
-              <div className="flex items-center gap-1.5">
-                {/* Global Clear Filters Button */}
-                {isFilterActive && (
-                  <button
-                    type="button"
-                    onClick={handleClearAllFilters}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-semibold bg-cash-out-light text-cash-out border border-cash-out-border hover:bg-cash-out-light/80 transition-all cursor-pointer shadow-2xs"
-                    title="Clear all filters & restore overall whole calculation"
-                  >
-                    <RotateCcw size={11} />
-                    <span>Clear</span>
-                  </button>
-                )}
+          {/* Select Date Chip & Popover */}
+          <div className="relative shrink-0" ref={datePopoverRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsDatePopoverOpen((prev) => !prev);
+                setIsEntryTypeOpen(false);
+                setIsMemberOpen(false);
+                setIsCategoryOpen(false);
+              }}
+              className={`h-9 flex items-center gap-1.5 px-3 rounded-full text-xs font-medium border transition-all cursor-pointer whitespace-nowrap ${
+                fromDate || toDate
+                  ? "bg-primary-light border-primary text-primary font-semibold"
+                  : "bg-surface border-border-default text-txt-main hover:bg-subtle"
+              }`}
+            >
+              <Calendar
+                size={13}
+                className={fromDate || toDate ? "text-primary" : "text-txt-muted"}
+              />
+              <span className="truncate max-w-[120px]">{dateRangeLabel}</span>
+              <ChevronDown size={13} className="text-txt-muted" />
+            </button>
 
-                {/* Shadcn-style Single Date Range Button & Popover */}
-                <div className="relative" ref={datePopoverRef}>
-                  <button
-                    type="button"
-                    onClick={() => setIsDatePopoverOpen((prev) => !prev)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border shadow-2xs transition-all cursor-pointer ${
-                      fromDate || toDate
-                        ? "bg-primary-light/60 border-primary text-primary font-semibold"
-                        : "bg-surface border-border-default text-txt-main hover:bg-subtle"
-                    }`}
-                  >
-                    <Calendar
-                      size={13}
-                      className={fromDate || toDate ? "text-primary" : "text-txt-muted"}
-                    />
-                    <span className="truncate max-w-[130px] sm:max-w-none">
-                      {dateRangeLabel}
-                    </span>
-                    <ChevronDown size={12} className="text-txt-muted" />
-                  </button>
-
-                  {/* Popover */}
-                  {isDatePopoverOpen && (
-                    <div className="absolute right-0 top-10 w-72 sm:w-80 bg-surface border border-border-default rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-3">
-                      <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
-                        <span className="text-xs font-bold text-txt-main">
-                          Filter by Date Range
-                        </span>
-                        {(fromDate || toDate) && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setFromDate("");
-                              setToDate("");
-                            }}
-                            className="text-[11px] font-semibold text-cash-out hover:underline cursor-pointer"
-                          >
-                            Clear Date
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Quick Presets */}
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {[
-                          { label: "Today", preset: "today" as const },
-                          { label: "Yesterday", preset: "yesterday" as const },
-                          { label: "This Week", preset: "thisWeek" as const },
-                          { label: "This Month", preset: "thisMonth" as const },
-                          { label: "Last 30 Days", preset: "last30" as const },
-                        ].map(({ label, preset }) => (
-                          <button
-                            key={preset}
-                            type="button"
-                            onClick={() => {
-                              const { from, to } = getPresetDates(preset);
-                              setFromDate(from);
-                              setToDate(to);
-                              setIsDatePopoverOpen(false);
-                            }}
-                            className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-subtle hover:bg-subtle/80 text-txt-secondary hover:text-txt-main transition-colors text-center cursor-pointer"
-                          >
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-
-                      {/* Manual Inputs */}
-                      <div className="flex flex-col gap-2 pt-1 border-t border-border-subtle">
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="text-[11px] font-medium text-txt-secondary w-12">
-                            From:
-                          </label>
-                          <input
-                            type="date"
-                            value={fromDate}
-                            onChange={(e) => setFromDate(e.target.value)}
-                            className="flex-1 bg-surface border border-border-default rounded-xl px-2.5 py-1 text-xs text-txt-main focus:outline-none focus:border-primary cursor-pointer"
-                          />
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="text-[11px] font-medium text-txt-secondary w-12">
-                            To:
-                          </label>
-                          <input
-                            type="date"
-                            value={toDate}
-                            onChange={(e) => setToDate(e.target.value)}
-                            className="flex-1 bg-surface border border-border-default rounded-xl px-2.5 py-1 text-xs text-txt-main focus:outline-none focus:border-primary cursor-pointer"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-subtle">
-                        <button
-                          type="button"
-                          onClick={() => setIsDatePopoverOpen(false)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </div>
+            {isDatePopoverOpen && (
+              <div className="fixed sm:absolute left-4 sm:left-0 right-4 sm:right-auto top-36 sm:top-11 w-auto sm:w-80 bg-surface border border-border-default rounded-2xl shadow-xl p-4 z-50 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-3">
+                <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
+                  <span className="text-xs font-bold text-txt-main">
+                    Filter by Date Range
+                  </span>
+                  {(fromDate || toDate) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFromDate("");
+                        setToDate("");
+                      }}
+                      className="text-[11px] font-semibold text-cash-out hover:underline cursor-pointer"
+                    >
+                      Clear Date
+                    </button>
                   )}
                 </div>
 
-                {/* Page Size / Entries Selector */}
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    const val =
-                      e.target.value === "All"
-                        ? "All"
-                        : Number(e.target.value);
-                    setPageSize(val);
-                    setIsLimitFiltered(val !== "All");
-                  }}
-                  className={`bg-surface border rounded-xl px-2.5 py-1.5 text-xs font-semibold shadow-2xs cursor-pointer focus:outline-none ${
-                    isLimitFiltered
-                      ? "border-primary text-primary"
-                      : "border-border-default text-txt-main"
-                  }`}
-                  title="Transactions to show and calculate"
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                  <option value={1000}>1000</option>
-                  <option value="All">All</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Category Quick Filter Pills Bar (Clean Horizontal Scrollable, No Scrollbar) */}
-            {availableCategories.length > 0 && (
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCategoryFilter("All")}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                    selectedCategoryFilter === "All"
-                      ? "bg-primary text-white shadow-xs"
-                      : "bg-surface border border-border-default text-txt-secondary hover:text-txt-main"
-                  }`}
-                >
-                  <Filter size={12} />
-                  <span>All</span>
-                </button>
-
-                {availableCategories.map((cat) => {
-                  const Icon = getCategoryIcon(cat);
-                  const isSelected =
-                    selectedCategoryFilter.toLowerCase() === cat.toLowerCase();
-                  return (
+                <div className="grid grid-cols-2 gap-1.5">
+                  {[
+                    { label: "Today", preset: "today" as const },
+                    { label: "Yesterday", preset: "yesterday" as const },
+                    { label: "This Week", preset: "thisWeek" as const },
+                    { label: "This Month", preset: "thisMonth" as const },
+                    { label: "Last 30 Days", preset: "last30" as const },
+                  ].map(({ label, preset }) => (
                     <button
-                      key={cat}
+                      key={preset}
                       type="button"
-                      onClick={() => setSelectedCategoryFilter(cat)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
-                        isSelected
-                          ? "bg-primary text-white shadow-xs"
-                          : "bg-surface border border-border-default text-txt-secondary hover:text-txt-main"
-                      }`}
+                      onClick={() => {
+                        const { from, to } = getPresetDates(preset);
+                        setFromDate(from);
+                        setToDate(to);
+                        setIsDatePopoverOpen(false);
+                      }}
+                      className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-subtle hover:bg-subtle/80 text-txt-secondary hover:text-txt-main transition-colors text-center cursor-pointer"
                     >
-                      <Icon size={12} />
-                      <span>{cat}</span>
+                      {label}
                     </button>
-                  );
-                })}
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-2 pt-1 border-t border-border-subtle">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-medium text-txt-secondary w-12">
+                      From:
+                    </label>
+                    <input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      className="flex-1 bg-surface border border-border-default rounded-xl px-2.5 py-1 text-xs text-txt-main focus:outline-none focus:border-primary cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-[11px] font-medium text-txt-secondary w-12">
+                      To:
+                    </label>
+                    <input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      className="flex-1 bg-surface border border-border-default rounded-xl px-2.5 py-1 text-xs text-txt-main focus:outline-none focus:border-primary cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2 border-t border-border-subtle">
+                  <button
+                    type="button"
+                    onClick={() => setIsDatePopoverOpen(false)}
+                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer"
+                  >
+                    Apply
+                  </button>
+                </div>
               </div>
             )}
           </div>
 
-          {/* Transaction List */}
-          {isLogsLoading ? (
-            <div className="flex flex-col gap-1.5 animate-pulse">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center justify-between p-3.5 bg-surface rounded-2xl border border-border-subtle/50 shadow-xs"
-                >
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="w-10 h-10 rounded-xl bg-slate-200/70 shrink-0" />
-                    <div className="flex flex-col gap-1.5 flex-1">
-                      <div className="h-4 w-32 bg-slate-200/70 rounded-md" />
-                      <div className="h-3 w-20 bg-slate-100 rounded-md" />
-                    </div>
-                  </div>
-                  <div className="h-4 w-16 bg-slate-200/70 rounded-md" />
-                </div>
-              ))}
-            </div>
-          ) : paginatedLogs.length === 0 ? (
-            <div className="p-8 text-center bg-surface border border-dashed border-border-default rounded-3xl text-xs text-txt-muted shadow-sm">
-              {rawLogs.length === 0
-                ? "No transactions yet. Click \"+ Cash In\" or \"- Cash Out\" below."
-                : `No transactions found matching the filter.`}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {paginatedLogs.map((log) => {
-                const cleanAmount = formatCleanAmount(log.amountPaisa / 100);
-                const hasReceipt =
-                  log.attachments && log.attachments.length > 0;
-                const isPositive =
-                  log.type === "in" ||
-                  (log.type !== "out" &&
-                    (log.note.startsWith("[IN]") ||
-                      log.note.toLowerCase().includes("income") ||
-                      log.note.toLowerCase().includes("cash in")));
+          {/* Entry Type Chip & Popover */}
+          <div className="relative shrink-0" ref={entryTypeRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsEntryTypeOpen((prev) => !prev);
+                setIsDatePopoverOpen(false);
+                setIsMemberOpen(false);
+                setIsCategoryOpen(false);
+              }}
+              className={`h-9 flex items-center gap-1.5 px-3 rounded-full text-xs font-medium border transition-all cursor-pointer whitespace-nowrap ${
+                entryTypeFilter !== "all"
+                  ? "bg-primary-light border-primary text-primary font-semibold"
+                  : "bg-surface border-border-default text-txt-main hover:bg-subtle"
+              }`}
+            >
+              <span>
+                {entryTypeFilter === "all"
+                  ? "Entry Type"
+                  : entryTypeFilter === "in"
+                    ? "Cash In (+)"
+                    : "Cash Out (-)"}
+              </span>
+              <ChevronDown size={13} className="text-txt-muted" />
+            </button>
 
-                const displayNote =
-                  log.note.replace(/^\[IN\]\s*/, "").trim() ||
-                  log.category ||
-                  "Transaction";
-                const CategoryIcon = getCategoryIcon(log.category);
-
-                return (
-                  <div
-                    key={log.id}
-                    onClick={() => setViewingLog(log)}
-                    className="flex items-center justify-between p-3.5 bg-surface rounded-2xl transition-all hover:bg-subtle/70 border border-border-subtle/50 shadow-xs cursor-pointer group"
+            {isEntryTypeOpen && (
+              <div className="fixed sm:absolute left-4 sm:left-0 top-36 sm:top-11 w-44 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                {(
+                  [
+                    { value: "all", label: "All Entries" },
+                    { value: "in", label: "Cash In (+)" },
+                    { value: "out", label: "Cash Out (-)" },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => {
+                      setEntryTypeFilter(opt.value);
+                      setIsEntryTypeOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer"
                   >
-                    <div className="flex items-center gap-3 min-w-0 pr-2">
-                      {/* Category Icon Box */}
-                      <div className="w-10 h-10 rounded-xl bg-primary-light border border-primary-border flex items-center justify-center shrink-0">
-                        <CategoryIcon size={18} className="text-primary" />
-                      </div>
+                    <span>{opt.label}</span>
+                    {entryTypeFilter === opt.value && (
+                      <Check size={14} className="text-primary" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-txt-main block truncate group-hover:text-primary transition-colors">
-                            {displayNote}
-                          </span>
-                          {log.category && log.category !== "General" && (
-                            <span className="text-[10px] font-medium bg-subtle px-1.5 py-0.5 rounded-md text-txt-secondary truncate max-w-[80px]">
-                              {log.category}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-txt-muted mt-0.5 flex-wrap">
-                          <span>{formatDate(log.logDate).split(",")[0]}</span>
-                          {log.createdAt && (
-                            <>
-                              <span>•</span>
-                              <span>{formatTime(log.createdAt)}</span>
-                            </>
-                          )}
-                          {log.loggedByName && (
-                            <>
-                              <span>•</span>
-                              <span className="font-medium text-txt-secondary">
-                                {log.loggedByName}
-                              </span>
-                            </>
-                          )}
-                          {Boolean(log.updatedBy) && (
-                            <span className="text-[9px] font-bold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-1 py-0.2 rounded">
-                              Edited
-                            </span>
-                          )}
-                          {hasReceipt && (
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveReceiptUrl(log.attachments![0].url);
-                              }}
-                              className="text-primary hover:underline font-medium flex items-center gap-1 cursor-pointer ml-0.5"
-                            >
-                              <ImageIcon size={11} />
-                              <span>Receipt</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+          {/* Member Chip & Popover */}
+          <div className="relative shrink-0" ref={memberRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsMemberOpen((prev) => !prev);
+                setIsDatePopoverOpen(false);
+                setIsEntryTypeOpen(false);
+                setIsCategoryOpen(false);
+              }}
+              className={`h-9 flex items-center gap-1.5 px-3 rounded-full text-xs font-medium border transition-all cursor-pointer whitespace-nowrap ${
+                memberFilter !== "All"
+                  ? "bg-primary-light border-primary text-primary font-semibold"
+                  : "bg-surface border-border-default text-txt-main hover:bg-subtle"
+              }`}
+            >
+              <span className="truncate max-w-[100px]">
+                {memberFilter === "All" ? "Member" : memberFilter}
+              </span>
+              <ChevronDown size={13} className="text-txt-muted" />
+            </button>
 
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span
-                        className={`font-bold text-sm sm:text-base shrink-0 ${
-                          isPositive ? "text-cash-in" : "text-cash-out"
-                        }`}
-                      >
-                        {isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
+            {isMemberOpen && (
+              <div className="fixed sm:absolute left-4 sm:left-0 top-36 sm:top-11 w-48 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                {["All", ...availableMembers].map((mem) => (
+                  <button
+                    key={mem}
+                    type="button"
+                    onClick={() => {
+                      setMemberFilter(mem);
+                      setIsMemberOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer"
+                  >
+                    <span className="truncate">
+                      {mem === "All" ? "All Members" : mem}
+                    </span>
+                    {memberFilter === mem && (
+                      <Check size={14} className="text-primary shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Category Chip & Popover */}
+          {availableCategories.length > 0 && (
+            <div className="relative shrink-0" ref={categoryRef}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCategoryOpen((prev) => !prev);
+                  setIsDatePopoverOpen(false);
+                  setIsEntryTypeOpen(false);
+                  setIsMemberOpen(false);
+                }}
+                className={`h-9 flex items-center gap-1.5 px-3 rounded-full text-xs font-medium border transition-all cursor-pointer whitespace-nowrap ${
+                  selectedCategoryFilter !== "All"
+                    ? "bg-primary-light border-primary text-primary font-semibold"
+                    : "bg-surface border-border-default text-txt-main hover:bg-subtle"
+                }`}
+              >
+                <span className="truncate max-w-[100px]">
+                  {selectedCategoryFilter === "All"
+                    ? "Category"
+                    : selectedCategoryFilter}
+                </span>
+                <ChevronDown size={13} className="text-txt-muted" />
+              </button>
+
+              {isCategoryOpen && (
+                <div className="fixed sm:absolute right-4 sm:right-0 top-36 sm:top-11 w-48 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                  {["All", ...availableCategories].map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategoryFilter(cat);
+                        setIsCategoryOpen(false);
+                      }}
+                      className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer"
+                    >
+                      <span className="truncate">
+                        {cat === "All" ? "All Categories" : cat}
                       </span>
-
-                      {/* Edit Button (Admin/Editor only, 48x48 hit-box) */}
-                      {canEditTransaction && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setEditingLog(log);
-                          }}
-                          className="relative min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-txt-muted hover:text-primary hover:bg-primary-light active:scale-90 transition-all cursor-pointer touch-manipulation before:absolute before:-inset-1.5 before:content-['']"
-                          title="Edit Transaction"
-                        >
-                          <Edit2 size={14} />
-                        </button>
+                      {selectedCategoryFilter === cat && (
+                        <Check size={14} className="text-primary shrink-0" />
                       )}
-
-                      {/* Delete Button (Admin/Editor only, 48x48 hit-box) */}
-                      {canDeleteTransaction && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteLog(log.id);
-                          }}
-                          className="relative min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-txt-muted hover:text-cash-out hover:bg-cash-out-light active:scale-90 transition-all cursor-pointer touch-manipulation before:absolute before:-inset-1.5 before:content-['']"
-                          title="Delete Transaction"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
+
+          {/* Compact Page Size Selector */}
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              const val =
+                e.target.value === "All" ? "All" : Number(e.target.value);
+              setPageSize(val);
+              setIsLimitFiltered(val !== "All");
+            }}
+            className={`shrink-0 h-9 bg-surface border rounded-full px-3 text-xs font-medium cursor-pointer focus:outline-none ${
+              isLimitFiltered
+                ? "border-primary text-primary font-semibold bg-primary-light"
+                : "border-border-default text-txt-main"
+            }`}
+            title="Entries limit"
+          >
+            <option value="All">All</option>
+            <option value={10}>10</option>
+            <option value={20}>20</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+
+          {isFilterActive && (
+            <button
+              type="button"
+              onClick={handleClearAllFilters}
+              className="shrink-0 h-9 flex items-center gap-1 px-3 rounded-full text-xs font-semibold bg-cash-out-light text-cash-out border border-cash-out-border hover:bg-cash-out-light/80 transition-all cursor-pointer"
+            >
+              <RotateCcw size={12} />
+              <span>Clear</span>
+            </button>
+          )}
         </div>
+
+        {/* Top Banner: Reference-style Net Balance Summary Card */}
+        <LedgerSummaryCard
+          netBalancePaisa={netBalancePaisa}
+          totalInPaisa={totalInPaisa}
+          totalOutPaisa={totalOutPaisa}
+          currency={currency}
+          reportsHref={`/orgs/${orgId}/reports`}
+          isFilterActive={isFilterActive}
+          filteredCount={logsForSummary.length}
+        />
+
+        {/* Entry Count Subheader */}
+        <div className="text-center text-xs font-medium text-txt-muted py-0.5">
+          {isLogsLoading
+            ? "Loading entries..."
+            : `Showing ${paginatedLogs.length} ${
+                paginatedLogs.length === 1 ? "entry" : "entries"
+              }${
+                filteredLogs.length > paginatedLogs.length
+                  ? ` of ${filteredLogs.length}`
+                  : ""
+              }`}
+        </div>
+
+        {/* Date-Grouped Transaction List */}
+        {isLogsLoading ? (
+          <div className="flex flex-col gap-2 animate-pulse">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="flex items-center justify-between p-4 bg-surface rounded-2xl border border-border-subtle shadow-xs"
+              >
+                <div className="flex flex-col gap-2 flex-1">
+                  <div className="h-5 w-16 bg-slate-200/70 rounded-md" />
+                  <div className="h-4 w-36 bg-slate-200/70 rounded-md" />
+                  <div className="h-3 w-44 bg-slate-100 rounded-md" />
+                </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <div className="h-4 w-16 bg-slate-200/70 rounded-md" />
+                  <div className="h-3 w-20 bg-slate-100 rounded-md" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : groupedLogs.length === 0 ? (
+          <div className="p-8 text-center bg-surface border border-dashed border-border-default rounded-2xl text-xs text-txt-muted shadow-xs">
+            {rawLogs.length === 0
+              ? 'No transactions yet. Tap "+ Cash In" or "- Cash Out" below.'
+              : "No entries found matching your search or filters."}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {groupedLogs.map((group) => (
+              <div key={group.dateKey} className="flex flex-col gap-1.5">
+                {/* Date Group Header */}
+                <div className="px-1 text-xs font-semibold text-txt-muted">
+                  {group.label}
+                </div>
+
+                {/* Grouped Entry Rows */}
+                <div className="bg-surface border border-border-default rounded-2xl divide-y divide-border-subtle shadow-xs overflow-hidden">
+                  {group.items.map((log) => {
+                    const cleanAmount = formatCleanAmount(log.amountPaisa / 100);
+                    const hasReceipt =
+                      log.attachments && log.attachments.length > 0;
+                    const isPositive = isLogCashIn(log);
+                    const rawNote = log.note.replace(/^\[IN\]\s*/, "").trim();
+                    const categoryLabel = log.category || "Cash";
+                    const runningPaisa = runningBalanceMap.get(log.id) ?? 0;
+                    const formattedRunning = `${
+                      runningPaisa < 0 ? "-" : ""
+                    }${formatCleanAmount(Math.abs(runningPaisa) / 100)}`;
+
+                    return (
+                      <div
+                        key={log.id}
+                        onClick={() => setViewingLog(log)}
+                        className="px-4 py-3.5 hover:bg-subtle/60 transition-colors cursor-pointer flex flex-col gap-1.5"
+                      >
+                        {/* Top Row: Category/Mode Pill + Amount & Running Balance */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-primary-light text-primary">
+                              {categoryLabel}
+                            </span>
+                            {Boolean(log.updatedBy) && (
+                              <span className="text-[10px] font-semibold text-amber-700 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded">
+                                Edited
+                              </span>
+                            )}
+                            {hasReceipt && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveReceiptUrl(log.attachments![0].url);
+                                }}
+                                className="inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline cursor-pointer"
+                              >
+                                <ImageIcon size={11} />
+                                <span>Receipt</span>
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col items-end shrink-0">
+                            <span
+                              className={`text-sm sm:text-base font-bold tabular-nums leading-tight ${
+                                isPositive ? "text-cash-in" : "text-cash-out"
+                              }`}
+                            >
+                              {cleanAmount}
+                            </span>
+                            <span className="text-[11px] text-txt-muted tabular-nums mt-0.5">
+                              Balance: {formattedRunning}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Middle Row: Remark / Note */}
+                        {rawNote && (
+                          <div className="text-sm font-medium text-txt-main break-words">
+                            {rawNote}
+                          </div>
+                        )}
+
+                        {/* Bottom Row: Entry by + Timestamp + Quick Actions */}
+                        <div className="flex items-center justify-between gap-2 pt-0.5">
+                          <div className="flex items-center gap-1.5 text-xs flex-wrap min-w-0">
+                            <span className="font-medium text-teal-700 truncate">
+                              Entry by {log.loggedByName || "You"}
+                            </span>
+                            {log.createdAt && (
+                              <span className="text-txt-muted">
+                                at {formatTime(log.createdAt)}
+                              </span>
+                            )}
+                          </div>
+
+                          {(canEditTransaction || canDeleteTransaction) && (
+                            <div className="flex items-center gap-1 shrink-0">
+                              {canEditTransaction && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setEditingLog(log);
+                                  }}
+                                  className="relative min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg text-txt-muted hover:text-primary hover:bg-primary-light active:scale-90 transition-all cursor-pointer touch-manipulation before:absolute before:-inset-2 before:content-['']"
+                                  title="Edit Transaction"
+                                >
+                                  <Edit2 size={13} />
+                                </button>
+                              )}
+                              {canDeleteTransaction && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteLog(log.id);
+                                  }}
+                                  className="relative min-w-[32px] min-h-[32px] flex items-center justify-center rounded-lg text-txt-muted hover:text-cash-out hover:bg-cash-out-light active:scale-90 transition-all cursor-pointer touch-manipulation before:absolute before:-inset-2 before:content-['']"
+                                  title="Delete Transaction"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </main>
 
       {/* Floating Lightbox for Receipts */}
@@ -1124,6 +1380,18 @@ export default function ExpenseDetailPage({ params }: PageProps) {
           setIsBookDetailsOpen(false);
           setIsEditExpenseOpen(true);
         }}
+      />
+
+      {/* Export PDF / CSV Statement Modal */}
+      <ExportStatementModal
+        isOpen={isExportOpen}
+        onClose={() => setIsExportOpen(false)}
+        bookTitle={expense?.title || "Book Ledger"}
+        currency={currency}
+        netBalancePaisa={netBalancePaisa}
+        totalInPaisa={totalInPaisa}
+        totalOutPaisa={totalOutPaisa}
+        logs={paginatedLogs}
       />
     </div>
   );

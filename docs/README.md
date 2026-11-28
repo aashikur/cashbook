@@ -24,9 +24,10 @@ docs/
 │   ├── 06-external-services-guide.md         # Neon DB, Cloudflare R2 ($0 egress), Google, Resend setup
 │   ├── 07-clean-fintech-ui-and-tactile-system.md # White fintech theme, 48x48px hit-slop, tri-state skeletons
 │   └── 08-system-design-and-interview-prep.md   # Domain fundamentals, build blueprint, top 10 interview Q&A
-└── postman/
-    ├── cashbook.postman_collection.json      # Machine-executable Postman Collection v2.1.0
-    └── README.md                             # Human-readable API documentation with request/response payloads
+
+../postman/                                   # Canonical API Collection & Docs (outside docs/)
+├── cashbook.postman_collection.json          # Machine-executable Postman Collection v2.1.0
+└── README.md                                 # Human-readable API documentation with request/response payloads
 ```
 
 ---
