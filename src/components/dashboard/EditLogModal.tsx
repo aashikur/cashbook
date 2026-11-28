@@ -88,6 +88,10 @@ export default function EditLogModal({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!log) return;
+    if (activeOrg?.role !== "admin") {
+      setError("Forbidden: Only workspace editors can modify transactions");
+      return;
+    }
 
     const parsedAmount = parseFloat(amount);
     if (isNaN(parsedAmount) || parsedAmount <= 0) {

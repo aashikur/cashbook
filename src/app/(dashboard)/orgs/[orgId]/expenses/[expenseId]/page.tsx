@@ -9,6 +9,7 @@ import EditExpenseModal from "@/components/dashboard/EditExpenseModal";
 import LogDetailsModal from "@/components/dashboard/LogDetailsModal";
 import BookDetailsModal from "@/components/dashboard/BookDetailsModal";
 import { useAppStore } from "@/store/app-store";
+import { useOrgPermissions } from "@/hooks/useOrgPermissions";
 import { localDb, LocalDailyLog } from "@/lib/local-db";
 import { enqueueSyncItem } from "@/lib/sync-service";
 import { formatCleanAmount, formatCurrency, formatDate, formatTime } from "@/lib/utils";
@@ -47,6 +48,13 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     setLogType,
     setAddLogOpen,
   } = useAppStore();
+
+  const {
+    canAddTransaction,
+    canEditTransaction,
+    canDeleteTransaction,
+    canEditBook,
+  } = useOrgPermissions();
 
   // 1. Reactive Dexie queries (0ms Instant Load)
   const cachedExpense = useLiveQuery(
@@ -333,6 +341,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
   // Optimistic log deletion
   async function handleDeleteLog(logId: string) {
+    if (!canDeleteTransaction) return;
     if (!confirm("Are you sure you want to delete this transaction?")) return;
 
     const targetLog = rawLogs.find((l) => l.id === logId);
@@ -447,28 +456,32 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                   <Info size={15} className="text-primary" />
                   <span>Book Information</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsHeaderMenuOpen(false);
-                    setIsEditExpenseOpen(true);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
-                >
-                  <Settings size={15} className="text-txt-secondary" />
-                  <span>Edit Book Details</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsHeaderMenuOpen(false);
-                    setIsEditExpenseOpen(true);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
-                >
-                  <Archive size={15} className="text-txt-secondary" />
-                  <span>Archive / Delete</span>
-                </button>
+                {canEditBook && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsHeaderMenuOpen(false);
+                        setIsEditExpenseOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
+                    >
+                      <Settings size={15} className="text-txt-secondary" />
+                      <span>Edit Book Details</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsHeaderMenuOpen(false);
+                        setIsEditExpenseOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
+                    >
+                      <Archive size={15} className="text-txt-secondary" />
+                      <span>Archive / Delete</span>
+                    </button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -813,21 +826,23 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                         {isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
                       </span>
 
-                      {/* Edit Button */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingLog(log);
-                        }}
-                        className="p-1.5 rounded-lg text-txt-muted hover:text-primary hover:bg-primary-light transition-colors cursor-pointer"
-                        title="Edit Transaction"
-                      >
-                        <Edit2 size={13} />
-                      </button>
+                      {/* Edit Button (Admin/Editor only) */}
+                      {canEditTransaction && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditingLog(log);
+                          }}
+                          className="p-1.5 rounded-lg text-txt-muted hover:text-primary hover:bg-primary-light transition-colors cursor-pointer"
+                          title="Edit Transaction"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                      )}
 
-                      {/* Delete Button */}
-                      {activeOrg?.role === "admin" && (
+                      {/* Delete Button (Admin/Editor only) */}
+                      {canDeleteTransaction && (
                         <button
                           type="button"
                           onClick={(e) => {
@@ -878,23 +893,32 @@ export default function ExpenseDetailPage({ params }: PageProps) {
       {/* Fixed Sticky Action Bar at Bottom */}
       <div className="fixed bottom-0 left-0 right-0 z-30 bg-surface/95 backdrop-blur-md border-t border-border-subtle p-3 px-4 safe-area-pb">
         <div className="max-w-xl mx-auto flex gap-3">
-          {/* Green Cash In Button */}
-          <button
-            onClick={handleOpenCashIn}
-            className="btn-cash-in flex-1 cursor-pointer active:scale-95 transition-transform"
-          >
-            <Plus size={18} strokeWidth={2.5} />
-            <span>Cash In</span>
-          </button>
+          {canAddTransaction ? (
+            <>
+              {/* Green Cash In Button */}
+              <button
+                onClick={handleOpenCashIn}
+                className="btn-cash-in flex-1 cursor-pointer active:scale-95 transition-transform"
+              >
+                <Plus size={18} strokeWidth={2.5} />
+                <span>Cash In</span>
+              </button>
 
-          {/* Red Cash Out Button */}
-          <button
-            onClick={handleOpenCashOut}
-            className="btn-cash-out flex-1 cursor-pointer active:scale-95 transition-transform"
-          >
-            <Minus size={18} strokeWidth={2.5} />
-            <span>Cash Out</span>
-          </button>
+              {/* Red Cash Out Button */}
+              <button
+                onClick={handleOpenCashOut}
+                className="btn-cash-out flex-1 cursor-pointer active:scale-95 transition-transform"
+              >
+                <Minus size={18} strokeWidth={2.5} />
+                <span>Cash Out</span>
+              </button>
+            </>
+          ) : (
+            <div className="w-full py-2.5 px-4 rounded-xl bg-subtle border border-border-default text-center text-xs font-medium text-txt-muted flex items-center justify-center gap-2">
+              <Info size={14} className="text-primary" />
+              <span>Viewing mode: You have read-only access to this book.</span>
+            </div>
+          )}
         </div>
       </div>
 

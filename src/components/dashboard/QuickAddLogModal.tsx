@@ -184,6 +184,10 @@ export default function QuickAddLogModal({
       setError("Organization context missing");
       return;
     }
+    if (activeOrg?.role !== "admin") {
+      setError("Forbidden: Only workspace editors can record transactions");
+      return;
+    }
 
     setLoading(true);
     setError("");

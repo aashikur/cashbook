@@ -7,6 +7,7 @@ import { computeBookBalancePaisa, formatCleanAmount, formatDate } from "@/lib/ut
 import { useLiveQuery } from "dexie-react-hooks";
 import { localDb } from "@/lib/local-db";
 import { useAppStore } from "@/store/app-store";
+import { useOrgPermissions } from "@/hooks/useOrgPermissions";
 
 interface BookCardProps {
   id: string;
@@ -56,6 +57,7 @@ export default function BookCard({
   const cleanAmount = formatCleanAmount(Math.abs(displayPaisa) / 100);
 
   const { setActiveExpenseId, setLogType, setAddLogOpen } = useAppStore();
+  const { canAddTransaction } = useOrgPermissions();
 
   function handleQuickAction(e: React.MouseEvent, type: "in" | "out") {
     e.preventDefault();
@@ -100,25 +102,27 @@ export default function BookCard({
             {isZero ? "0" : isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
           </Link>
 
-          {/* Quick (+ In / - Out) Buttons */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={(e) => handleQuickAction(e, "in")}
-              title="Quick Cash In"
-              className="w-5.5 h-5.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-90 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <Plus size={11} className="stroke-[2.5]" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => handleQuickAction(e, "out")}
-              title="Quick Cash Out"
-              className="w-5.5 h-5.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 active:scale-90 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <Minus size={11} className="stroke-[2.5]" />
-            </button>
-          </div>
+          {/* Quick (+ In / - Out) Buttons (Admin/Editor only) */}
+          {canAddTransaction && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => handleQuickAction(e, "in")}
+                title="Quick Cash In"
+                className="w-5.5 h-5.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-90 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <Plus size={11} className="stroke-[2.5]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleQuickAction(e, "out")}
+                title="Quick Cash Out"
+                className="w-5.5 h-5.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 active:scale-90 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <Minus size={11} className="stroke-[2.5]" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -159,25 +163,27 @@ export default function BookCard({
             {isZero ? "0" : isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
           </Link>
 
-          {/* Quick (+ In / - Out) Buttons */}
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={(e) => handleQuickAction(e, "in")}
-              title="Quick Cash In"
-              className="w-6 h-6 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-90 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <Plus size={12} className="stroke-[2.5]" />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => handleQuickAction(e, "out")}
-              title="Quick Cash Out"
-              className="w-6 h-6 rounded-md bg-rose-500/10 hover:bg-rose-500/20 active:scale-90 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center transition-all cursor-pointer"
-            >
-              <Minus size={12} className="stroke-[2.5]" />
-            </button>
-          </div>
+          {/* Quick (+ In / - Out) Buttons (Admin/Editor only) */}
+          {canAddTransaction && (
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={(e) => handleQuickAction(e, "in")}
+                title="Quick Cash In"
+                className="w-6 h-6 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-90 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <Plus size={12} className="stroke-[2.5]" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => handleQuickAction(e, "out")}
+                title="Quick Cash Out"
+                className="w-6 h-6 rounded-md bg-rose-500/10 hover:bg-rose-500/20 active:scale-90 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center transition-all cursor-pointer"
+              >
+                <Minus size={12} className="stroke-[2.5]" />
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -222,26 +228,28 @@ export default function BookCard({
           {isZero ? "0" : isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
         </Link>
 
-        {/* Quick (+ In / - Out) Action Buttons */}
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={(e) => handleQuickAction(e, "in")}
-            title="Quick Cash In"
-            className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-90 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-          >
-            <Plus size={14} className="stroke-[2.5]" />
-          </button>
+        {/* Quick (+ In / - Out) Action Buttons (Admin/Editor only) */}
+        {canAddTransaction && (
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => handleQuickAction(e, "in")}
+              title="Quick Cash In"
+              className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-90 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+            >
+              <Plus size={14} className="stroke-[2.5]" />
+            </button>
 
-          <button
-            type="button"
-            onClick={(e) => handleQuickAction(e, "out")}
-            title="Quick Cash Out"
-            className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 active:scale-90 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
-          >
-            <Minus size={14} className="stroke-[2.5]" />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={(e) => handleQuickAction(e, "out")}
+              title="Quick Cash Out"
+              className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 active:scale-90 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center justify-center transition-all cursor-pointer shadow-2xs"
+            >
+              <Minus size={14} className="stroke-[2.5]" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
