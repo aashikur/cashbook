@@ -250,13 +250,15 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     if (!rawLogs || rawLogs.length === 0) return [];
     return [...rawLogs].sort((a, b) => {
       // 1. Primary: compare calendar date (YYYY-MM-DD)
-      const dateComparison = b.logDate.localeCompare(a.logDate);
+      const dateComparison = (b.logDate || "").localeCompare(a.logDate || "");
       if (dateComparison !== 0) return dateComparison;
 
       // 2. Secondary: compare creation timestamp (ISO 8601)
-      const timeA = new Date(a.createdAt || 0).getTime();
-      const timeB = new Date(b.createdAt || 0).getTime();
-      if (timeB !== timeA) return timeB - timeA;
+      const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      const safeTimeA = Number.isNaN(timeA) ? 0 : timeA;
+      const safeTimeB = Number.isNaN(timeB) ? 0 : timeB;
+      if (safeTimeB !== safeTimeA) return safeTimeB - safeTimeA;
 
       // 3. Fallback tie-breaker
       return (b.id || "").localeCompare(a.id || "");
@@ -264,26 +266,31 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   }, [rawLogs]);
 
   // 1. Date Range Filtered Logs
-  const dateFilteredLogs = chronologicallySortedLogs.filter((log) => {
-    if (fromDate && log.logDate < fromDate) return false;
-    if (toDate && log.logDate > toDate) return false;
-    return true;
-  });
+  const dateFilteredLogs = useMemo(() => {
+    return chronologicallySortedLogs.filter((log) => {
+      if (fromDate && log.logDate < fromDate) return false;
+      if (toDate && log.logDate > toDate) return false;
+      return true;
+    });
+  }, [chronologicallySortedLogs, fromDate, toDate]);
 
   // 2. Category Filter
-  const categoryFilteredLogs = dateFilteredLogs.filter((log) => {
-    if (selectedCategoryFilter === "All") return true;
-    return (
-      (log.category || "General").toLowerCase() ===
-      selectedCategoryFilter.toLowerCase()
-    );
-  });
+  const categoryFilteredLogs = useMemo(() => {
+    return dateFilteredLogs.filter((log) => {
+      if (selectedCategoryFilter === "All") return true;
+      return (
+        (log.category || "General").toLowerCase() ===
+        selectedCategoryFilter.toLowerCase()
+      );
+    });
+  }, [dateFilteredLogs, selectedCategoryFilter]);
 
   // 3. Page Size Limit
-  const paginatedLogs =
-    pageSize === "All"
+  const paginatedLogs = useMemo(() => {
+    return pageSize === "All"
       ? categoryFilteredLogs
       : categoryFilteredLogs.slice(0, Number(pageSize));
+  }, [categoryFilteredLogs, pageSize]);
 
   // Determine if active filter is applied
   const isFilterActive = Boolean(
@@ -293,27 +300,37 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     isLimitFiltered
   );
 
-  // Top Calculation:
+  // Top Calculation (O(N) single-pass memoized summary):
   // - If NO filter is applied: calculates the overall whole ledger (all-time)
   // - If ANY filter (date range, category, or selected limit) is applied: calculates ONLY for that filtered subset
   const logsForSummary = isFilterActive ? paginatedLogs : rawLogs;
 
-  const inLogs = logsForSummary.filter((l) => {
-    if (l.type) return l.type === "in";
-    const lower = l.note.toLowerCase();
-    return (
-      lower.startsWith("[in]") ||
-      lower.includes("freelance") ||
-      lower.includes("salary") ||
-      lower.includes("income") ||
-      lower.includes("cash in")
-    );
-  });
-
-  const outLogs = logsForSummary.filter((l) => !inLogs.includes(l));
-  const totalInPaisa = inLogs.reduce((acc, l) => acc + l.amountPaisa, 0);
-  const totalOutPaisa = outLogs.reduce((acc, l) => acc + l.amountPaisa, 0);
-  const netBalancePaisa = totalInPaisa - totalOutPaisa;
+  const { totalInPaisa, totalOutPaisa, netBalancePaisa } = useMemo(() => {
+    let inPaisa = 0;
+    let outPaisa = 0;
+    for (const l of logsForSummary) {
+      let isIn = l.type === "in";
+      if (!l.type) {
+        const lower = (l.note || "").toLowerCase();
+        isIn =
+          lower.startsWith("[in]") ||
+          lower.includes("freelance") ||
+          lower.includes("salary") ||
+          lower.includes("income") ||
+          lower.includes("cash in");
+      }
+      if (isIn) {
+        inPaisa += l.amountPaisa || 0;
+      } else {
+        outPaisa += l.amountPaisa || 0;
+      }
+    }
+    return {
+      totalInPaisa: inPaisa,
+      totalOutPaisa: outPaisa,
+      netBalancePaisa: inPaisa - outPaisa,
+    };
+  }, [logsForSummary]);
 
   // Clear all filters handler
   function handleClearAllFilters() {
