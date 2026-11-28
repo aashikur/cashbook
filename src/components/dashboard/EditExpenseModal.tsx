@@ -204,8 +204,10 @@ export default function EditExpenseModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-150 overflow-y-auto">
       <div className="bg-surface border border-border-default w-full max-w-sm rounded-3xl p-6 shadow-2xl relative animate-in zoom-in-95 duration-150 my-6">
         <button
+          type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 text-txt-muted hover:text-txt-secondary p-1 rounded-full transition-colors cursor-pointer"
+          aria-label="Close"
+          className="relative w-11 h-11 rounded-full text-txt-muted hover:text-txt-secondary hover:bg-subtle active:scale-95 flex items-center justify-center transition-all cursor-pointer touch-manipulation absolute right-2 top-2 before:absolute before:-inset-1 before:content-['']"
         >
           <X size={18} />
         </button>

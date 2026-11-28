@@ -74,14 +74,15 @@ export default function BookDetailsModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-full text-txt-muted hover:text-txt-main hover:bg-subtle transition-colors cursor-pointer"
+            aria-label="Close"
+            className="relative w-11 h-11 rounded-full text-txt-muted hover:text-txt-main hover:bg-subtle active:scale-95 flex items-center justify-center transition-all cursor-pointer touch-manipulation before:absolute before:-inset-1 before:content-['']"
           >
             <X size={18} />
           </button>
         </div>
 
         {/* Scrollable Content */}
-        <div className="p-5 overflow-y-auto flex flex-col gap-4">
+        <div className="p-4 overflow-y-auto flex flex-col gap-4">
           {/* Book Header Card */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-600 via-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/15">
             <div className="flex items-center justify-between mb-1">
@@ -104,7 +105,7 @@ export default function BookDetailsModal({
           </div>
 
           {/* Book Details */}
-          <div className="bg-subtle/50 rounded-2xl border border-border-subtle p-3.5 flex flex-col gap-3">
+          <div className="px-1 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <span className="text-xs text-txt-secondary flex items-center gap-1.5">
                 <BookOpen size={13} className="text-txt-muted" />
@@ -137,7 +138,7 @@ export default function BookDetailsModal({
           </div>
 
           {/* Audit Trail & Ownership Details */}
-          <div className="bg-surface rounded-2xl border border-border-default p-3.5 flex flex-col gap-2.5">
+          <div className="px-1 pt-2 border-t border-border-subtle flex flex-col gap-2.5">
             <span className="text-[11px] font-bold text-txt-secondary uppercase tracking-wider flex items-center gap-1.5">
               <Clock size={13} className="text-primary" />
               <span>Creation & Modification Audit</span>
@@ -185,7 +186,7 @@ export default function BookDetailsModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-end gap-2 p-3.5 px-5 bg-subtle/50 border-t border-border-subtle">
+        <div className="flex items-center justify-end gap-2 p-3 px-4 border-t border-border-subtle">
           <button
             type="button"
             onClick={onClose}

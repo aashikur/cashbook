@@ -4,14 +4,12 @@ import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore, OrgContext } from "@/store/app-store";
-import { signOut, useSession } from "@/lib/auth-client";
+import { useSession } from "@/lib/auth-client";
 import EditOrgModal from "@/components/dashboard/EditOrgModal";
 import NotificationBell from "@/components/layout/NotificationBell";
 import { isSuperAdminEmail } from "@/lib/admin-constants";
 import {
-  Activity,
   ChevronDown,
-  LogOut,
   Plus,
   Settings,
   ShieldCheck,
@@ -113,11 +111,6 @@ export default function AppHeader() {
       cancelled = true;
     };
   }, [router, setActiveOrg, setIsOrgsLoading, setOrgs]);
-
-  async function handleLogout() {
-    await signOut();
-    router.push("/sign-in");
-  }
 
   const isSuperAdmin = session?.user?.email
     ? isSuperAdminEmail(session.user.email)
@@ -228,47 +221,18 @@ export default function AppHeader() {
                 <span>Create New Workspace</span>
               </button>
 
-              {isSuperAdmin && (
-                <>
-                  <div className="my-1.5 border-t border-border-subtle" />
-                  <Link
-                    href="/health"
-                    onClick={() => setIsDropdownOpen(false)}
-                    className="w-full min-h-[48px] flex items-center gap-3 px-4 py-2.5 text-sm sm:text-xs font-semibold text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-[0.99] transition-all cursor-pointer touch-manipulation"
-                  >
-                    <Activity size={16} className="text-cash-in" />
-                    <span>System Health & Status</span>
-                  </Link>
-
-                  <Link
-                    href="/admin"
-                    onClick={() => setIsDropdownOpen(false)}
-                    className="w-full min-h-[48px] flex items-center gap-3 px-4 py-2.5 text-sm sm:text-xs font-bold text-primary hover:bg-primary-light active:scale-[0.99] transition-all cursor-pointer touch-manipulation"
-                  >
-                    <ShieldCheck size={16} className="stroke-[2.5]" />
-                    <span>Platform Super Admin</span>
-                  </Link>
-                </>
-              )}
-
-              <div className="my-1.5 border-t border-border-subtle" />
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full min-h-[48px] flex items-center gap-3 px-4 py-2.5 text-sm sm:text-xs font-semibold text-cash-out hover:bg-cash-out-light active:scale-[0.99] transition-all cursor-pointer touch-manipulation"
-              >
-                <LogOut size={16} />
-                <span>Sign Out</span>
-              </button>
-
               {/* Developer Attribution (Read-only) */}
               <div className="py-2.5 px-3 text-center border-t border-border-subtle mt-1.5 bg-subtle/30 rounded-b-3xl sm:rounded-b-2xl">
                 <p className="text-[11px] text-txt-muted font-medium whitespace-nowrap tracking-tight">
                   CashBook v1.1 • Designed & Developed by{" "}
-                  <span className="font-semibold text-txt-main">
+                  <a
+                    href="https://wa.me/8801580563883"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-semibold text-txt-main hover:text-primary hover:underline transition-colors"
+                  >
                     Aashikur Rahaman
-                  </span>
+                  </a>
                 </p>
               </div>
             </div>

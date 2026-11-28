@@ -37,7 +37,7 @@ export default function LedgerSummaryCard({
   return (
     <section
       aria-label="Ledger balance summary"
-      className="bg-surface border border-border-default rounded-2xl shadow-xs overflow-hidden"
+      className="mx-4 sm:mx-0 bg-surface border border-border-default rounded-2xl shadow-xs overflow-hidden"
     >
       {/* Top Row: Net Balance */}
       <div className="flex items-center justify-between px-4 py-3.5">

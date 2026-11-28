@@ -8,6 +8,7 @@ import EditLogModal from "@/components/dashboard/EditLogModal";
 import EditExpenseModal from "@/components/dashboard/EditExpenseModal";
 import LogDetailsModal from "@/components/dashboard/LogDetailsModal";
 import BookDetailsModal from "@/components/dashboard/BookDetailsModal";
+import BookActionsMenu from "@/components/dashboard/BookActionsMenu";
 import LedgerSummaryCard from "@/components/dashboard/LedgerSummaryCard";
 import ExportStatementModal from "@/components/dashboard/ExportStatementModal";
 import { useAppStore } from "@/store/app-store";
@@ -113,6 +114,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isEditExpenseOpen, setIsEditExpenseOpen] = useState(false);
   const [isBookDetailsOpen, setIsBookDetailsOpen] = useState(false);
+  const [isLimitOpen, setIsLimitOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<LocalDailyLog | null>(null);
   const [viewingLog, setViewingLog] = useState<LocalDailyLog | null>(null);
 
@@ -121,6 +123,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   const entryTypeRef = useRef<HTMLDivElement>(null);
   const memberRef = useRef<HTMLDivElement>(null);
   const categoryRef = useRef<HTMLDivElement>(null);
+  const limitRef = useRef<HTMLDivElement>(null);
   const currency = activeOrg?.currency || "USD";
 
   // Effective expense and logs (Dexie has priority for 0ms, server augments)
@@ -145,6 +148,9 @@ export default function ExpenseDetailPage({ params }: PageProps) {
       }
       if (categoryRef.current && !categoryRef.current.contains(target)) {
         setIsCategoryOpen(false);
+      }
+      if (limitRef.current && !limitRef.current.contains(target)) {
+        setIsLimitOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -687,48 +693,15 @@ export default function ExpenseDetailPage({ params }: PageProps) {
               <MoreVertical size={20} />
             </button>
 
-            {/* Header Dropdown Popover */}
-            {isHeaderMenuOpen && (
-              <div className="absolute right-0 top-12 w-48 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsHeaderMenuOpen(false);
-                    setIsBookDetailsOpen(true);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
-                >
-                  <Info size={15} className="text-primary" />
-                  <span>Book Information</span>
-                </button>
-                {canEditBook && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsHeaderMenuOpen(false);
-                        setIsEditExpenseOpen(true);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
-                    >
-                      <Settings size={15} className="text-txt-secondary" />
-                      <span>Edit Book Details</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsHeaderMenuOpen(false);
-                        setIsEditExpenseOpen(true);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-semibold text-txt-main hover:bg-subtle transition-colors text-left cursor-pointer"
-                    >
-                      <Archive size={15} className="text-txt-secondary" />
-                      <span>Archive / Delete</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
+            {/* Header Dropdown Popover (Shared 48x48px Menu) */}
+            <BookActionsMenu
+              isOpen={isHeaderMenuOpen}
+              onClose={() => setIsHeaderMenuOpen(false)}
+              canEdit={canEditBook}
+              onOpenInfo={() => setIsBookDetailsOpen(true)}
+              onOpenEdit={() => setIsEditExpenseOpen(true)}
+              positionClass="right-0 top-12"
+            />
           </div>
         </div>
 
@@ -757,9 +730,9 @@ export default function ExpenseDetailPage({ params }: PageProps) {
         </div>
       </header>
 
-      <main className="max-w-xl mx-auto w-full px-4 pt-3 flex flex-col gap-3.5 flex-1">
+      <main className="max-w-xl mx-auto w-full px-0 sm:px-4 pt-3 flex flex-col gap-3.5 flex-1">
         {/* Horizontal Filter Chips Row (Reference UI Style) */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="px-4 sm:px-0 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {/* Filter / Reset Icon Chip */}
           <button
             type="button"
@@ -840,7 +813,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                         setToDate(to);
                         setIsDatePopoverOpen(false);
                       }}
-                      className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-subtle hover:bg-subtle/80 text-txt-secondary hover:text-txt-main transition-colors text-center cursor-pointer"
+                      className="min-h-[44px] px-3 py-2 rounded-xl text-xs font-medium bg-subtle hover:bg-subtle/80 text-txt-secondary hover:text-txt-main transition-colors text-center cursor-pointer touch-manipulation"
                     >
                       {label}
                     </button>
@@ -876,7 +849,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                   <button
                     type="button"
                     onClick={() => setIsDatePopoverOpen(false)}
-                    className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer"
+                    className="min-h-[44px] px-5 py-2 rounded-xl text-xs font-semibold bg-primary text-white hover:bg-primary-hover transition-colors cursor-pointer touch-manipulation"
                   >
                     Apply
                   </button>
@@ -912,7 +885,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
             </button>
 
             {isEntryTypeOpen && (
-              <div className="fixed sm:absolute left-4 sm:left-0 top-36 sm:top-11 w-44 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+              <div className="fixed left-4 right-4 top-36 w-auto sm:absolute sm:left-0 sm:right-auto sm:top-11 sm:w-52 bg-surface border border-border-default rounded-3xl sm:rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
                 {(
                   [
                     { value: "all", label: "All Entries" },
@@ -927,7 +900,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                       setEntryTypeFilter(opt.value);
                       setIsEntryTypeOpen(false);
                     }}
-                    className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer"
+                    className="w-full min-h-[48px] flex items-center justify-between px-4 py-2.5 text-sm sm:text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer touch-manipulation"
                   >
                     <span>{opt.label}</span>
                     {entryTypeFilter === opt.value && (
@@ -962,7 +935,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
             </button>
 
             {isMemberOpen && (
-              <div className="fixed sm:absolute left-4 sm:left-0 top-36 sm:top-11 w-48 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+              <div className="fixed left-4 right-4 top-36 w-auto sm:absolute sm:left-0 sm:right-auto sm:top-11 sm:w-52 bg-surface border border-border-default rounded-3xl sm:rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
                 {["All", ...availableMembers].map((mem) => (
                   <button
                     key={mem}
@@ -971,7 +944,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                       setMemberFilter(mem);
                       setIsMemberOpen(false);
                     }}
-                    className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer"
+                    className="w-full min-h-[48px] flex items-center justify-between px-4 py-2.5 text-sm sm:text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer touch-manipulation"
                   >
                     <span className="truncate">
                       {mem === "All" ? "All Members" : mem}
@@ -1011,7 +984,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
               </button>
 
               {isCategoryOpen && (
-                <div className="fixed sm:absolute right-4 sm:right-0 top-36 sm:top-11 w-48 bg-surface border border-border-default rounded-2xl shadow-xl py-1.5 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-60 overflow-y-auto">
+                <div className="fixed left-4 right-4 top-36 w-auto sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-52 bg-surface border border-border-default rounded-3xl sm:rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100 max-h-64 overflow-y-auto">
                   {["All", ...availableCategories].map((cat) => (
                     <button
                       key={cat}
@@ -1020,7 +993,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                         setSelectedCategoryFilter(cat);
                         setIsCategoryOpen(false);
                       }}
-                      className="w-full flex items-center justify-between px-3.5 py-2 text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer"
+                      className="w-full min-h-[48px] flex items-center justify-between px-4 py-2.5 text-sm sm:text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer touch-manipulation"
                     >
                       <span className="truncate">
                         {cat === "All" ? "All Categories" : cat}
@@ -1035,28 +1008,50 @@ export default function ExpenseDetailPage({ params }: PageProps) {
             </div>
           )}
 
-          {/* Compact Page Size Selector */}
-          <select
-            value={pageSize}
-            onChange={(e) => {
-              const val =
-                e.target.value === "All" ? "All" : Number(e.target.value);
-              setPageSize(val);
-              setIsLimitFiltered(val !== "All");
-            }}
-            className={`shrink-0 h-9 bg-surface border rounded-full px-3 text-xs font-medium cursor-pointer focus:outline-none ${
-              isLimitFiltered
-                ? "border-primary text-primary font-semibold bg-primary-light"
-                : "border-border-default text-txt-main"
-            }`}
-            title="Entries limit"
-          >
-            <option value="All">All</option>
-            <option value={10}>10</option>
-            <option value={20}>20</option>
-            <option value={50}>50</option>
-            <option value={100}>100</option>
-          </select>
+          {/* Compact Page Size Popover */}
+          <div className="relative shrink-0" ref={limitRef}>
+            <button
+              type="button"
+              onClick={() => {
+                setIsLimitOpen((prev) => !prev);
+                setIsDatePopoverOpen(false);
+                setIsEntryTypeOpen(false);
+                setIsMemberOpen(false);
+                setIsCategoryOpen(false);
+              }}
+              className={`h-9 flex items-center gap-1.5 px-3 rounded-full text-xs font-medium border transition-all cursor-pointer whitespace-nowrap ${
+                isLimitFiltered
+                  ? "bg-primary-light border-primary text-primary font-semibold"
+                  : "bg-surface border-border-default text-txt-main hover:bg-subtle"
+              }`}
+              title="Entries limit"
+            >
+              <span>{pageSize === "All" ? "All" : `${pageSize}`}</span>
+              <ChevronDown size={13} className="text-txt-muted" />
+            </button>
+
+            {isLimitOpen && (
+              <div className="fixed left-4 right-4 top-36 w-auto sm:absolute sm:left-auto sm:right-0 sm:top-11 sm:w-44 bg-surface border border-border-default rounded-3xl sm:rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                {(["All", 10, 20, 50, 100] as const).map((val) => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => {
+                      setPageSize(val);
+                      setIsLimitFiltered(val !== "All");
+                      setIsLimitOpen(false);
+                    }}
+                    className="w-full min-h-[48px] flex items-center justify-between px-4 py-2.5 text-sm sm:text-xs font-medium text-txt-main hover:bg-subtle cursor-pointer touch-manipulation"
+                  >
+                    <span>{val === "All" ? "All Entries" : `Last ${val}`}</span>
+                    {pageSize === val && (
+                      <Check size={14} className="text-primary shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {isFilterActive && (
             <button
@@ -1115,7 +1110,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
             ))}
           </div>
         ) : groupedLogs.length === 0 ? (
-          <div className="p-8 text-center bg-surface border border-dashed border-border-default rounded-2xl text-xs text-txt-muted shadow-xs">
+          <div className="mx-4 sm:mx-0 p-8 text-center bg-surface border border-dashed border-border-default rounded-2xl text-xs text-txt-muted shadow-xs">
             {rawLogs.length === 0
               ? 'No transactions yet. Tap "+ Cash In" or "- Cash Out" below.'
               : "No entries found matching your search or filters."}
@@ -1125,12 +1120,12 @@ export default function ExpenseDetailPage({ params }: PageProps) {
             {groupedLogs.map((group) => (
               <div key={group.dateKey} className="flex flex-col gap-1.5">
                 {/* Date Group Header */}
-                <div className="px-1 text-xs font-semibold text-txt-muted">
+                <div className="px-4 sm:px-1 text-xs font-semibold text-txt-muted">
                   {group.label}
                 </div>
 
                 {/* Grouped Entry Rows */}
-                <div className="bg-surface border border-border-default rounded-2xl divide-y divide-border-subtle shadow-xs overflow-hidden">
+                <div className="bg-surface border-y sm:border border-border-default rounded-none sm:rounded-2xl divide-y divide-border-subtle shadow-none sm:shadow-xs overflow-hidden">
                   {group.items.map((log) => {
                     const cleanAmount = formatCleanAmount(log.amountPaisa / 100);
                     const hasReceipt =

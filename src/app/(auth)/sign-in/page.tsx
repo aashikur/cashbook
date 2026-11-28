@@ -193,7 +193,14 @@ export default function SignInPage() {
       <div className="text-center mt-6 pt-4 border-t border-border-subtle">
         <p className="text-[11px] text-txt-muted">
           Designed & Developed by{" "}
-          <span className="font-semibold text-txt-main">Aashikur Rahaman</span>
+          <a
+            href="https://wa.me/8801580563883"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-txt-main hover:text-primary hover:underline transition-colors"
+          >
+            Aashikur Rahaman
+          </a>
         </p>
       </div>
     </div>

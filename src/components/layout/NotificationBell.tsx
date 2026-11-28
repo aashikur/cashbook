@@ -144,9 +144,9 @@ export default function NotificationBell() {
         )}
       </button>
 
-      {/* Dropdown Menu */}
+      {/* Dropdown Menu: Full-width on mobile, anchored w-96 on desktop */}
       {isOpen && (
-        <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-surface border border-border-default rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed left-3 right-3 top-[64px] w-auto sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:w-96 bg-surface border border-border-default rounded-3xl sm:rounded-2xl shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-2 border-b border-border-subtle">
             <div className="flex items-center gap-2">

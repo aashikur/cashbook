@@ -14,12 +14,14 @@ interface CopyBooksButtonProps {
     Array<{ type?: string; note?: string; amountPaisa: number }>
   >;
   sortOption?: string;
+  variant?: "surface" | "gradient";
 }
 
 export default function CopyBooksButton({
   expenses,
   logsByExpenseId,
   sortOption = "updated",
+  variant = "surface",
 }: CopyBooksButtonProps) {
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -244,27 +246,48 @@ export default function CopyBooksButton({
     return null;
   }
 
+  const isSurface = variant === "surface";
+
   return (
-    <div className="relative inline-flex flex-col items-end z-20" ref={menuRef}>
+    <div className="relative inline-flex flex-col items-end z-20 shrink-0" ref={menuRef}>
       {/* Toast Feedback Notification Pill */}
       {toastMessage && (
-        <div className="absolute bottom-full right-0 mb-2 whitespace-nowrap bg-slate-900/90 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg shadow-lg border border-white/10 backdrop-blur-md animate-in fade-in slide-in-from-bottom-1 duration-150 pointer-events-none">
+        <div className="absolute top-full right-0 mt-2 whitespace-nowrap bg-slate-900/95 text-white text-[11px] font-medium px-2.5 py-1 rounded-lg shadow-lg border border-white/10 backdrop-blur-md animate-in fade-in slide-in-from-top-1 duration-150 pointer-events-none z-50">
           {toastMessage}
         </div>
       )}
 
-      {/* Main Glassmorphic Button Group */}
-      <div className="flex items-center bg-white/15 hover:bg-white/20 border border-white/25 backdrop-blur-md rounded-xl p-0.5 shadow-sm transition-all text-white">
+      {/* Split Copy + Format Options Button Group */}
+      <div
+        className={`flex items-center rounded-xl p-0.5 transition-all ${
+          isSurface
+            ? "bg-subtle hover:bg-border-default/60 border border-border-default text-txt-main shadow-2xs"
+            : "bg-white/15 hover:bg-white/20 border border-white/25 backdrop-blur-md shadow-sm text-white"
+        }`}
+      >
         <button
           type="button"
           onClick={() => handleCopy()}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg hover:bg-white/10 active:scale-95 transition-all cursor-pointer"
+          className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg active:scale-95 transition-all cursor-pointer touch-manipulation ${
+            isSurface ? "hover:bg-surface" : "hover:bg-white/10"
+          }`}
           title={`Copy ${copyPayload.rowCount} books in current order`}
         >
           {copied ? (
             <>
-              <Check size={14} className="text-emerald-300 stroke-[3] animate-in zoom-in duration-150" />
-              <span className="text-emerald-200 font-bold">Copied!</span>
+              <Check
+                size={14}
+                className={`stroke-[3] animate-in zoom-in duration-150 ${
+                  isSurface ? "text-cash-in" : "text-emerald-300"
+                }`}
+              />
+              <span
+                className={`font-bold ${
+                  isSurface ? "text-cash-in" : "text-emerald-200"
+                }`}
+              >
+                Copied!
+              </span>
             </>
           ) : (
             <>
@@ -274,13 +297,23 @@ export default function CopyBooksButton({
           )}
         </button>
 
-        <div className="w-[1px] h-4 bg-white/25" />
+        <div
+          className={`w-[1px] h-4 ${
+            isSurface ? "bg-border-default" : "bg-white/25"
+          }`}
+        />
 
         <button
           type="button"
           onClick={() => setMenuOpen((prev) => !prev)}
-          className={`p-1.5 rounded-lg hover:bg-white/10 transition-colors cursor-pointer ${
-            menuOpen ? "bg-white/15 text-white" : "text-white/80"
+          className={`p-1.5 rounded-lg transition-colors cursor-pointer touch-manipulation ${
+            isSurface
+              ? menuOpen
+                ? "bg-surface text-primary"
+                : "text-txt-secondary hover:bg-surface hover:text-txt-main"
+              : menuOpen
+              ? "bg-white/15 text-white"
+              : "text-white/80 hover:bg-white/10"
           }`}
           title="Copy format options"
           aria-expanded={menuOpen}

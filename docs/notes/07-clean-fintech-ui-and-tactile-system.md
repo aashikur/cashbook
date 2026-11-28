@@ -149,10 +149,10 @@ a:active:not(:disabled) {
 ## 4. Screen Architecture
 
 ### Screen 1: Dashboard (`/dashboard`)
-1. **Top Header**: User profile photo/initials + Name dropdown ("Alex Romanov ∨") + Team invitation icon.
-2. **Search Bar**: Pill-shaped "Search books" input with right-aligned filter icon.
-3. **Books Section**: Heading ("Your books") with right-aligned pill `+ Add New Book` button (`.btn-pill-primary`).
-4. **Ledger Book List**: Pure white cards with rounded blue book icon, book name, last modified date, and formatted numeric balance.
+1. **Top Header**: Workspace initials + dropdown switcher, notification bell, and team icon. Automatically switches to a clean sticky focus-search bar (`←` + `Search by book name`) when search mode is activated.
+2. **Compact Balance Summary Card**: Clean white `bg-surface` banner (`border-border-default`, `rounded-2xl`) displaying `Current Balance`, book count, formatted total, and the surface-variant `[Copy]` spreadsheet dropdown (`CopyBooksButton`).
+3. **Books Section**: Toolbar ("Your Books") with right-aligned Sort/View toggle, Search trigger icon, and Admin `+ Add` pill button.
+4. **Ledger Book List**: Single grouped white card (`divide-y divide-border-subtle`, matching Entry Books) with blue book icon, title, last updated date, formatted net balance, compact quick `+`/`-` cash actions, and `⋮` Book Settings trigger (`EditExpenseModal`). Supports `Card View`, `Compact List`, and `2-Column Grid`.
 5. **Bottom Navigation**: Sticky tabs for **Books** (active blue), **Transactions**, and **Settings**.
 
 ### Screen 2: Book Details (`/orgs/[orgId]/expenses/[expenseId]`)

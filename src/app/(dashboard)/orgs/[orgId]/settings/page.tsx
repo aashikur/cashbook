@@ -280,9 +280,9 @@ export default function SettingsPage({ params }: PageProps) {
     <div className="min-h-screen flex flex-col bg-canvas pb-24">
       <AppHeader />
 
-      <main className="max-w-xl mx-auto w-full px-4 pt-5 flex flex-col gap-5 flex-1">
+      <main className="max-w-xl mx-auto w-full px-0 sm:px-4 pt-5 flex flex-col gap-5 flex-1">
         {/* Contextual Page Header */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="px-4 sm:px-0 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <Link
               href="/dashboard"
@@ -307,7 +307,7 @@ export default function SettingsPage({ params }: PageProps) {
         <button
           type="button"
           onClick={() => setIsProfileOpen(true)}
-          className="w-full bg-surface border border-border-default rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3 hover:bg-subtle/40 active:scale-[0.99] transition-all cursor-pointer touch-manipulation text-left"
+          className="mx-4 sm:mx-0 bg-surface border border-border-default rounded-2xl p-4 shadow-xs flex items-center justify-between gap-3 hover:bg-subtle/40 active:scale-[0.99] transition-all cursor-pointer touch-manipulation text-left"
         >
           <div className="flex items-center gap-3.5 min-w-0">
             <div className="w-12 h-12 rounded-2xl bg-primary text-white font-extrabold text-base flex items-center justify-center shadow-sm shrink-0">
@@ -340,10 +340,10 @@ export default function SettingsPage({ params }: PageProps) {
 
         {/* Section 1: Workspace Configuration */}
         <section className="flex flex-col gap-2">
-          <h2 className="px-1 text-[11px] font-bold uppercase tracking-wider text-txt-muted">
+          <h2 className="px-4 sm:px-1 text-[11px] font-bold uppercase tracking-wider text-txt-muted">
             Workspace
           </h2>
-          <div className="bg-surface border border-border-default rounded-2xl shadow-xs overflow-hidden divide-y divide-border-subtle">
+          <div className="bg-surface border-y sm:border border-border-default rounded-none sm:rounded-2xl shadow-none sm:shadow-xs overflow-hidden divide-y divide-border-subtle">
             <SettingsRow
               icon={<Building2 size={18} />}
               iconBgClass="bg-primary-light text-primary"
@@ -365,7 +365,7 @@ export default function SettingsPage({ params }: PageProps) {
 
             <SettingsRow
               icon={<Tags size={18} />}
-              iconBgClass="bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
+              iconBgClass="bg-amber-50 text-amber-600"
               label="Categories"
               subtitle={`Default presets & ${customCategories.length} custom ${
                 customCategories.length === 1 ? "category" : "categories"
@@ -377,7 +377,7 @@ export default function SettingsPage({ params }: PageProps) {
 
             <SettingsRow
               icon={<Users size={18} />}
-              iconBgClass="bg-emerald-50 text-cash-in dark:bg-emerald-950/60"
+              iconBgClass="bg-cash-in-light text-cash-in"
               label="Team & Access Control"
               subtitle="Manage members, roles & pending invitations"
               href={`/orgs/${orgId}/members`}
@@ -387,13 +387,13 @@ export default function SettingsPage({ params }: PageProps) {
 
         {/* Section 2: Account */}
         <section className="flex flex-col gap-2">
-          <h2 className="px-1 text-[11px] font-bold uppercase tracking-wider text-txt-muted">
+          <h2 className="px-4 sm:px-1 text-[11px] font-bold uppercase tracking-wider text-txt-muted">
             Account
           </h2>
-          <div className="bg-surface border border-border-default rounded-2xl shadow-xs overflow-hidden divide-y divide-border-subtle">
+          <div className="bg-surface border-y sm:border border-border-default rounded-none sm:rounded-2xl shadow-none sm:shadow-xs overflow-hidden divide-y divide-border-subtle">
             <SettingsRow
               icon={<User size={18} />}
-              iconBgClass="bg-purple-50 text-purple-600 dark:bg-purple-950/60 dark:text-purple-400"
+              iconBgClass="bg-purple-50 text-purple-600"
               label="Your Profile"
               subtitle="Personal details, email & workspace role"
               onClick={() => setIsProfileOpen(true)}
@@ -404,13 +404,13 @@ export default function SettingsPage({ params }: PageProps) {
         {/* Section 3: Platform System (Super Admin only) */}
         {isSuperAdmin && (
           <section className="flex flex-col gap-2">
-            <h2 className="px-1 text-[11px] font-bold uppercase tracking-wider text-txt-muted">
+            <h2 className="px-4 sm:px-1 text-[11px] font-bold uppercase tracking-wider text-txt-muted">
               System
             </h2>
-            <div className="bg-surface border border-border-default rounded-2xl shadow-xs overflow-hidden divide-y divide-border-subtle">
+            <div className="bg-surface border-y sm:border border-border-default rounded-none sm:rounded-2xl shadow-none sm:shadow-xs overflow-hidden divide-y divide-border-subtle">
               <SettingsRow
                 icon={<Activity size={18} />}
-                iconBgClass="bg-emerald-50 text-cash-in dark:bg-emerald-950/60"
+                iconBgClass="bg-cash-in-light text-cash-in"
                 label="System Health & Status"
                 subtitle="API diagnostics & database connectivity"
                 href="/health"
@@ -427,7 +427,7 @@ export default function SettingsPage({ params }: PageProps) {
         )}
 
         {/* Section 4: Session Sign Out */}
-        <section className="bg-surface border border-border-default rounded-2xl shadow-xs overflow-hidden">
+        <section className="bg-surface border-y sm:border border-border-default rounded-none sm:rounded-2xl shadow-none sm:shadow-xs overflow-hidden">
           <SettingsRow
             icon={<LogOut size={18} />}
             iconBgClass="bg-cash-out-light text-cash-out"
@@ -441,7 +441,14 @@ export default function SettingsPage({ params }: PageProps) {
         {/* Footer Attribution */}
         <p className="text-center text-[11px] text-txt-muted py-2">
           CashBook v1.1 • Designed & Developed by{" "}
-          <span className="font-semibold text-txt-main">Aashikur Rahaman</span>
+          <a
+            href="https://wa.me/8801580563883"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-txt-main hover:text-primary hover:underline transition-colors"
+          >
+            Aashikur Rahaman
+          </a>
         </p>
       </main>
 
