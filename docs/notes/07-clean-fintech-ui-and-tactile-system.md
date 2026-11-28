@@ -146,24 +146,22 @@ a:active:not(:disabled) {
 
 ---
 
-## 4. Screen Architecture
+## 4. Screen Architecture & Mobile Edge-to-Edge Layout
+
+Across Dashboard, Entry Books, and Settings Hub, `<main>` uses `px-0 sm:px-4` so grouped lists span **edge-to-edge on mobile** (`border-y sm:border rounded-none sm:rounded-2xl`), while standalone summary cards keep `mx-4 sm:mx-0` inset margins.
 
 ### Screen 1: Dashboard (`/dashboard`)
-1. **Top Header**: Workspace initials + dropdown switcher, notification bell, and team icon. Automatically switches to a clean sticky focus-search bar (`←` + `Search by book name`) when search mode is activated.
+1. **Top Header**: Workspace initials + full-width mobile org switcher, full-width mobile `NotificationBell`, and team icon. Switches cleanly to a sticky focus-search bar (`←` + `Search by book name`) when search mode is active.
 2. **Compact Balance Summary Card**: Clean white `bg-surface` banner (`border-border-default`, `rounded-2xl`) displaying `Current Balance`, book count, formatted total, and the surface-variant `[Copy]` spreadsheet dropdown (`CopyBooksButton`).
-3. **Books Section**: Toolbar ("Your Books") with right-aligned Sort/View toggle, Search trigger icon, and Admin `+ Add` pill button.
-4. **Ledger Book List**: Single grouped white card (`divide-y divide-border-subtle`, matching Entry Books) with blue book icon, title, last updated date, formatted net balance, compact quick `+`/`-` cash actions, and `⋮` Book Settings trigger (`EditExpenseModal`). Supports `Card View`, `Compact List`, and `2-Column Grid`.
+3. **Books Section**: Toolbar ("Your Books") with Sort/View toggle, Search trigger icon, and Admin `+ Add` pill button.
+4. **Ledger Book List**: Single grouped white card (`divide-y divide-border-subtle`) with blue book icon, title, last updated date, formatted net balance, compact quick `+`/`-` cash actions, and shared `BookActionsMenu` (`⋮` 48x48px dropdown for `Book Information`, `Edit Book Details`, `Archive / Delete`). Supports `Card View`, `Compact List`, and `2-Column Grid`.
 5. **Bottom Navigation**: Sticky tabs for **Books** (active blue), **Transactions**, and **Settings**.
 
 ### Screen 2: Book Details (`/orgs/[orgId]/expenses/[expenseId]`)
-1. **Top Header**: Back arrow (`←`), book title, and team/menu icons.
-2. **Dual Balance Cards**:
-   - **Total In**: Solid Blue card (`#2563EB`) displaying total inflow amount with dropdown indicator.
-   - **Total Out**: Solid Red card (`#DC2626`) displaying total outflow amount with dropdown indicator.
-3. **Transactions Stream**: Chronological list of logs with category icon (supermarket, restaurant, bookshop, freelance), relative time ("2 min ago"), and formatted cash values (`+15000` / `-500`).
-4. **Sticky Dual Action Bar**: Fixed bottom bar featuring two equal-width CTA buttons (auto-replaces `BottomNav` on `/expenses/` routes):
-   - `+ Cash In` (Vibrant green: `.btn-cash-in`)
-   - `- Cash Out` (Vibrant red: `.btn-cash-out`)
+1. **Top Header**: Back arrow (`←`), book title, team/export icons, and shared `BookActionsMenu` (`⋮` 48x48px dropdown).
+2. **Filter Bar & Popovers**: Unified full-width mobile popovers (`Date`, `Entry Type`, `Member`, `Category`, `Entries Limit`) with `min-h-[48px]` touchable options and borderless `BookDetailsModal` info view (`w-11 h-11` modal close targets).
+3. **Summary & Transactions Stream**: Inset `LedgerSummaryCard` (`Net Balance`, `Total In`, `Total Out`, `View reports`), followed by edge-to-edge date-grouped entries.
+4. **Sticky Dual Action Bar**: Fixed bottom bar featuring `+ Cash In` (`.btn-cash-in`) and `- Cash Out` (`.btn-cash-out`), auto-replacing `BottomNav` on `/expenses/` routes.
 
 ### Screen 3: Settings Hub (`/orgs/[orgId]/settings`) & Primary Nav Consistency
 1. **Persistent `BottomNav` across Hub Routes**: Sticky bottom tabs (**Books**, **Transactions** → `/reports`, **Settings** → `/settings`) remain visible across `/dashboard`, `/orgs/[orgId]/reports`, `/orgs/[orgId]/settings`, and `/orgs/[orgId]/members`, while automatically hiding on `/expenses/` drill-down routes.
