@@ -218,19 +218,37 @@ export async function processSyncQueue(): Promise<{
 }
 
 /**
- * Performs incremental delta sync (?since=timestamp) from server
+ * Performs incremental delta sync (?since=timestamp) from server.
+ * Falls back to full cold sync if local Dexie cache for this org is empty.
  */
-export async function performDeltaSync(orgId: string): Promise<void> {
-  if (typeof window === "undefined" || !navigator.onLine) return;
+export async function performDeltaSync(
+  orgId: string
+): Promise<{ activeExpenseCount: number }> {
+  if (typeof window === "undefined" || !navigator.onLine) {
+    const localCount = await localDb.expenses
+      .where("orgId")
+      .equals(orgId)
+      .and((e) => !e.isArchived)
+      .count();
+    return { activeExpenseCount: localCount };
+  }
 
-  const since = getLastSyncTimestamp(orgId);
+  const localTotalCount = await localDb.expenses
+    .where("orgId")
+    .equals(orgId)
+    .count();
+
+  // If Dexie is empty for this org, perform a cold sync so nothing is missed
+  const since = localTotalCount > 0 ? getLastSyncTimestamp(orgId) : null;
   const url = since
     ? `/api/v1/orgs/${orgId}/sync?since=${encodeURIComponent(since)}`
     : `/api/v1/orgs/${orgId}/sync`;
 
   try {
-    const res = await fetch(url);
-    if (!res.ok) return;
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) {
+      return { activeExpenseCount: localTotalCount };
+    }
 
     const { data } = await res.json();
     const { expenses: remoteExpenses, dailyLogs: remoteLogs, serverTimestamp } = data;
@@ -275,6 +293,14 @@ export async function performDeltaSync(orgId: string): Promise<void> {
   } catch (err) {
     console.error("Delta sync error:", err);
   }
+
+  const activeExpenseCount = await localDb.expenses
+    .where("orgId")
+    .equals(orgId)
+    .and((e) => !e.isArchived)
+    .count();
+
+  return { activeExpenseCount };
 }
 
 // Automatically register online sync listener in browser

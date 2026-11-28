@@ -12,7 +12,7 @@ import CopyBooksButton from "@/components/dashboard/CopyBooksButton";
 import QuickAddLogModal from "@/components/dashboard/QuickAddLogModal";
 import CreateExpenseModal from "@/components/dashboard/CreateExpenseModal";
 import CreateOrgModal from "@/components/dashboard/CreateOrgModal";
-import { useAppStore } from "@/store/app-store";
+import { useAppStore, useStoreHydrated } from "@/store/app-store";
 import { localDb } from "@/lib/local-db";
 import { performDeltaSync } from "@/lib/sync-service";
 import { useLiveQuery } from "dexie-react-hooks";
@@ -20,11 +20,15 @@ import { BookOpen, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const { activeOrg, setOrgSwitcherOpen, isOrgsLoading, hasHydrated } = useAppStore();
+  const { activeOrg, setOrgSwitcherOpen, isOrgsLoading } = useAppStore();
+  const hasHydrated = useStoreHydrated();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [syncedOrgId, setSyncedOrgId] = useState<string | null>(null);
-  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [syncState, setSyncState] = useState<{
+    orgId: string;
+    status: "syncing" | "done";
+    activeCount: number;
+  } | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -32,36 +36,40 @@ export default function DashboardPage() {
 
   // 1. Live query from local Dexie IndexedDB (Reactive offline-first)
   // Omit default [] so localExpenses returns undefined while resolving async IndexedDB
+  const activeOrgId = activeOrg?.id;
   const localExpenses = useLiveQuery(
     async () => {
-      if (!activeOrg) return [];
+      if (!activeOrgId) return [];
       return await localDb.expenses
         .where("orgId")
-        .equals(activeOrg.id)
+        .equals(activeOrgId)
         .and((e) => !e.isArchived)
         .reverse()
         .sortBy("updatedAt");
     },
-    [activeOrg?.id]
+    [activeOrgId]
   );
 
-  // 2. Fetch server updates & delta sync
+  // 2. Fetch server updates & delta sync (keyed by primitive activeOrgId to prevent re-runs)
   const loadData = useCallback(async () => {
-    if (!activeOrg) return;
-    setIsSyncing(true);
+    if (!activeOrgId) return;
+    setSyncState({ orgId: activeOrgId, status: "syncing", activeCount: 0 });
+    let activeCount = 0;
     try {
-      await performDeltaSync(activeOrg.id);
+      const result = await performDeltaSync(activeOrgId);
+      activeCount = result.activeExpenseCount;
     } finally {
-      setSyncedOrgId(activeOrg.id);
-      setIsSyncing(false);
+      setSyncState({ orgId: activeOrgId, status: "done", activeCount });
     }
-  }, [activeOrg]);
+  }, [activeOrgId]);
 
   const isWaitingForInitialSync =
-    Boolean(activeOrg) &&
+    Boolean(activeOrgId) &&
     localExpenses !== undefined &&
     localExpenses.length === 0 &&
-    (isSyncing || syncedOrgId !== activeOrg?.id);
+    (syncState?.orgId !== activeOrgId ||
+      syncState?.status === "syncing" ||
+      (syncState?.activeCount ?? 0) > 0);
 
   const isBooksLoading = localExpenses === undefined || isWaitingForInitialSync;
 

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
@@ -18,11 +19,9 @@ type AppState = {
   updateOrgInStore: (updated: Partial<OrgContext> & { id: string }) => void;
   removeOrgFromStore: (id: string) => void;
 
-  // Loading & hydration state for organizations
+  // Loading state for organizations
   isOrgsLoading: boolean;
   setIsOrgsLoading: (loading: boolean) => void;
-  hasHydrated: boolean;
-  setHasHydrated: (hydrated: boolean) => void;
 
   // Date filter (YYYY-MM-DD or empty for all)
   selectedDate: string;
@@ -93,8 +92,6 @@ export const useAppStore = create<AppState>()(
 
       isOrgsLoading: true,
       setIsOrgsLoading: (loading) => set({ isOrgsLoading: loading }),
-      hasHydrated: false,
-      setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
 
       selectedDate: "",
       setSelectedDate: (date) => set({ selectedDate: date }),
@@ -126,9 +123,27 @@ export const useAppStore = create<AppState>()(
         activeOrg: state.activeOrg,
         orgs: state.orgs,
       }),
-      onRehydrateStorage: () => (state) => {
-        state?.setHasHydrated(true);
-      },
     }
   )
 );
+
+/**
+ * Reliable Next.js SSR + Zustand persist hydration hook.
+ * Never gets stuck at false even when localStorage is empty or already hydrated.
+ */
+export function useStoreHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    if (useAppStore.persist.hasHydrated()) {
+      setHydrated(true);
+      return;
+    }
+    const unsub = useAppStore.persist.onFinishHydration(() => {
+      setHydrated(true);
+    });
+    return unsub;
+  }, []);
+
+  return hydrated;
+}

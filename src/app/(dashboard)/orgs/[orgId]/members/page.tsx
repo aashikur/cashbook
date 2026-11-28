@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 import AppHeader from "@/components/layout/AppHeader";
-import { useAppStore } from "@/store/app-store";
+import { useAppStore, useStoreHydrated } from "@/store/app-store";
 import { confirmDialog, alertDialog } from "@/store/confirm-store";
 import {
   ArrowLeft,
@@ -32,7 +32,8 @@ interface MemberItem {
 
 export default function MembersPage({ params }: PageProps) {
   const { orgId } = use(params);
-  const { activeOrg, setActiveOrg, hasHydrated } = useAppStore();
+  const { activeOrg, setActiveOrg } = useAppStore();
+  const hasHydrated = useStoreHydrated();
 
   const [members, setMembers] = useState<MemberItem[]>([]);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -248,18 +249,8 @@ export default function MembersPage({ params }: PageProps) {
           </div>
         </div>
 
-        {/* Invite Form (Admin only; hidden during initial hydration to avoid role flash) */}
-        {showSkeleton ? (
-          <div className="bg-surface border border-border-default rounded-3xl p-4 sm:p-5 flex flex-col gap-3.5 shadow-xs animate-pulse">
-            <div className="h-4 w-36 bg-slate-200/70 rounded-md" />
-            <div className="flex flex-col sm:flex-row gap-2.5">
-              <div className="h-11 flex-1 bg-subtle rounded-xl" />
-              <div className="h-11 w-full sm:w-36 bg-subtle rounded-xl" />
-              <div className="h-11 w-full sm:w-28 bg-primary/25 rounded-xl" />
-            </div>
-          </div>
-        ) : (
-          isAdmin && (
+        {/* Invite Form (Admin only; never shown to Viewers or during initial load) */}
+        {!showSkeleton && isAdmin && (
             <form
               onSubmit={handleInvite}
               className="bg-surface border border-border-default rounded-3xl p-4 sm:p-5 flex flex-col gap-3.5 shadow-xs"
@@ -319,7 +310,6 @@ export default function MembersPage({ params }: PageProps) {
                 </button>
               </div>
             </form>
-          )
         )}
 
         {/* Members List Section */}

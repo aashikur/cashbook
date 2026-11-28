@@ -145,16 +145,24 @@ export default function ExpenseDetailPage({ params }: PageProps) {
 
   // Background SWR delta fetch to ensure server parity
   const refreshServerData = useCallback(async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
       const [expRes, logsRes] = await Promise.all([
         fetch(`/api/v1/orgs/${orgId}/expenses/${expenseId}?t=${Date.now()}`, {
           cache: "no-store",
+          signal: controller.signal,
         }),
         fetch(
           `/api/v1/orgs/${orgId}/expenses/${expenseId}/logs?limit=100&t=${Date.now()}`,
-          { cache: "no-store" }
+          { cache: "no-store", signal: controller.signal }
         ),
       ]);
+
+      if (expRes.status === 401) {
+        window.location.href = "/sign-in";
+        return;
+      }
 
       if (expRes.ok) {
         const { data } = await expRes.json();
@@ -205,6 +213,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     } catch (err) {
       console.warn("Background SWR refresh error:", err);
     } finally {
+      clearTimeout(timeoutId);
       setHasFetchedServer(true);
     }
   }, [orgId, expenseId]);
