@@ -735,7 +735,7 @@
                 "{{expenseId}}"
               ]
             },
-            "description": "Deletes ledger book. Allowed only if logCount === 0 to protect 15-year audit history."
+            "description": "Soft-deletes ledger book (records deletedAt tombstone for delta sync). Allowed only if logCount === 0 to protect 15-year audit history. Idempotent."
           },
           "response": []
         }

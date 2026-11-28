@@ -67,6 +67,7 @@ export interface Expense {
   updatedByName?: string;      // Denormalized/joined display name
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;   // Soft-delete tombstone for delta sync propagation
 }
 ```
 
@@ -151,7 +152,7 @@ export interface SyncQueueItem {
 ## 2. Database Indexes (10–15 Year Query Optimization)
 
 * `org_members`: Unique index on `(orgId, userId)`; index on `(userId, status)`.
-* `expenses`: Index on `(orgId, isArchived, updatedAt)`.
+* `expenses`: Index on `(orgId, isArchived, updatedAt)` and `(orgId, deletedAt)`.
 * `daily_logs`:
   * `(orgId, fiscalYear, fiscalMonth, logDate DESC)` — Primary monthly/yearly ledger browsing.
   * `(orgId, expenseId, logDate DESC)` — Expense-specific drill-down.
@@ -202,7 +203,7 @@ All `/api/v1/orgs/:orgId/*` routes validate the user's session cookie/Bearer tok
 | `POST` | `/api/v1/orgs/:orgId/expenses` | Admin | Header: `Idempotency-Key` <br> Body: `{ id, title, category? }` | Creates expense ledger (idempotent for offline sync) |
 | `GET` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin / Viewer | — | Returns single `Expense` |
 | `PATCH` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | `{ title?, category?, isArchived? }` | Updates or archives expense |
-| `DELETE` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | — | Hard-deletes expense only if `logCount === 0` |
+| `DELETE` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | — | Soft-deletes expense (`deletedAt`) only if `logCount === 0`; idempotent return for sync |
 
 ### 3.5 Daily Logs (10–15 Year Ledger Entries)
 | Method | Endpoint | Access | Request / Query Params | Response / Description |

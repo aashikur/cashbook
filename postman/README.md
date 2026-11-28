@@ -52,7 +52,7 @@ The collection comes pre-configured with the following variables:
 | **Ledgers** | `POST` | `/api/v1/orgs/:orgId/expenses` | Admin | Create ledger book |
 | **Ledgers** | `GET` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Member | Get ledger book details |
 | **Ledgers** | `PATCH` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | Update / Archive ledger book |
-| **Ledgers** | `DELETE` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | Delete book (only if logCount === 0) |
+| **Ledgers** | `DELETE` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | Soft-delete book tombstone (only if logCount === 0; idempotent) |
 | **Logs** | `GET` | `/api/v1/orgs/:orgId/expenses/:expenseId/logs` | Member | List transaction logs in ledger |
 | **Logs** | `GET` | `/api/v1/orgs/:orgId/logs?year=&month=&category=` | Member | Query logs across books |
 | **Logs** | `POST` | `/api/v1/orgs/:orgId/expenses/:expenseId/logs` | Member | Create transaction (`type`, `category`) |

@@ -33,6 +33,7 @@ The collection comes pre-configured with the following variables:
 | Module | Method | Endpoint | Access Role | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | **System** | `GET` | `/api/health` | Public | Server & Neon DB health check |
+| **Super Admin** | `GET` | `/api/v1/admin/overview` | Super Admin | Platform telemetry, metrics, users directory & org mapping |
 | **Auth** | `GET` | `/api/auth/get-session` | Authenticated | Retrieves current user session |
 | **Auth** | `POST` | `/api/auth/sign-in/email` | Public | Sign in with email and password |
 | **Auth** | `POST` | `/api/auth/sign-up/email` | Public | Create new account |
@@ -41,12 +42,17 @@ The collection comes pre-configured with the following variables:
 | **Organizations** | `POST` | `/api/v1/orgs` | Authenticated | Create a new organization |
 | **Organizations** | `GET` | `/api/v1/orgs/:orgId` | Member | Get active organization metadata |
 | **Members** | `GET` | `/api/v1/orgs/:orgId/members` | Member | List organization members |
-| **Members** | `POST` | `/api/v1/orgs/:orgId/members/invite` | Admin | Invite a user via email |
+| **Members** | `POST` | `/api/v1/orgs/:orgId/members` | Admin | Invite a user via email (creates pending invite) |
+| **Members** | `PATCH` | `/api/v1/orgs/:orgId/members/:userId` | Admin | Update member role (`admin` vs `viewer`) |
+| **Members** | `DELETE` | `/api/v1/orgs/:orgId/members/:userId` | Admin | Remove member from organization |
+| **Invitations** | `GET` | `/api/v1/invitations` | Authenticated | List all pending invitations for user |
+| **Invitations** | `POST` | `/api/v1/invitations/:inviteId/accept` | Authenticated | Accept invitation and activate membership |
+| **Invitations** | `POST` | `/api/v1/invitations/:inviteId/decline` | Authenticated | Decline / revoke pending invitation |
 | **Ledgers** | `GET` | `/api/v1/orgs/:orgId/expenses` | Member | List all ledger books |
 | **Ledgers** | `POST` | `/api/v1/orgs/:orgId/expenses` | Admin | Create ledger book |
 | **Ledgers** | `GET` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Member | Get ledger book details |
 | **Ledgers** | `PATCH` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | Update / Archive ledger book |
-| **Ledgers** | `DELETE` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | Delete book (only if logCount === 0) |
+| **Ledgers** | `DELETE` | `/api/v1/orgs/:orgId/expenses/:expenseId` | Admin | Soft-delete book tombstone (only if logCount === 0; idempotent) |
 | **Logs** | `GET` | `/api/v1/orgs/:orgId/expenses/:expenseId/logs` | Member | List transaction logs in ledger |
 | **Logs** | `GET` | `/api/v1/orgs/:orgId/logs?year=&month=&category=` | Member | Query logs across books |
 | **Logs** | `POST` | `/api/v1/orgs/:orgId/expenses/:expenseId/logs` | Member | Create transaction (`type`, `category`) |
@@ -66,5 +72,6 @@ The collection comes pre-configured with the following variables:
 
 ## 🔒 Security & Data Integrity Rules
 - **Multi-Tenant Isolation:** `orgId` checked on every query.
+- **Audit Trails & Attribution:** All mutations track `createdBy` / `loggedBy` and `updatedBy` along with ISO timestamps. Responses include joined `createdByName` / `loggedByName` and `updatedByName`.
 - **Amounts in Paisa:** Stored strictly as positive integer cents/paisa (`amountPaisa`).
 - **Audit Preserved:** Ledgers with `logCount > 0` cannot be hard deleted.

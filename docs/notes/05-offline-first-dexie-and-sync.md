@@ -46,7 +46,7 @@ sequenceDiagram
 ## 3. Idempotency & Delta Sync
 
 - **Client-Generated UUIDs**: Every log and expense generates a `crypto.randomUUID()` before creation. Passed as an `Idempotency-Key` HTTP header. If mobile network drops during upload and retries, PostgreSQL's `onConflictDoNothing` prevents duplicate double-spending records.
-- **Delta Sync (`?since=`)**: The client only downloads records where `updatedAt > lastSyncTimestamp`, reducing mobile data usage to just a few kilobytes.
+- **Delta Sync (`?since=`) & Tombstones**: The client downloads records where `updatedAt > lastSyncTimestamp`. Both `expenses` and `daily_logs` employ soft-delete tombstones (`deletedAt`). When `performDeltaSync()` encounters a record with `deletedAt`, it immediately purges the item and associated sub-records from local Dexie IndexedDB cache, preventing phantom books and orphaned records.
 
 ---
 
