@@ -10,6 +10,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { confirmDialog } from "@/store/confirm-store";
 
 export interface CustomCategoryItem {
   id: string;
@@ -138,13 +139,15 @@ export default function ManageCategoriesModal({
   }
 
   async function handleDelete(cat: CustomCategoryItem) {
-    if (
-      !confirm(
-        `Delete category "${cat.name}"?\n\nAny past transactions under this category will safely be reassigned to "General".`
-      )
-    ) {
-      return;
-    }
+    const confirmed = await confirmDialog({
+      title: "Delete Category?",
+      description: `Delete category "${cat.name}"?\n\nAny past transactions under this category will safely be reassigned to "General".`,
+      confirmText: "Delete Category",
+      cancelText: "Keep",
+      variant: "danger",
+      icon: "trash",
+    });
+    if (!confirmed) return;
 
     setLoading(true);
     setError("");

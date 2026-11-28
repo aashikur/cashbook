@@ -5,6 +5,7 @@ import { useAppStore } from "@/store/app-store";
 import { localDb } from "@/lib/local-db";
 import { useRouter } from "next/navigation";
 import { Building2, Trash2, X } from "lucide-react";
+import { confirmDialog } from "@/store/confirm-store";
 
 export default function EditOrgModal() {
   const router = useRouter();
@@ -88,8 +89,15 @@ export default function EditOrgModal() {
   async function handleDelete() {
     if (!orgToEdit) return;
 
-    const confirmMessage = `Are you sure you want to permanently delete "${orgToEdit.name}"?\n\nThis will remove all associated ledger books, transaction logs, and attachments for this workspace.`;
-    if (!confirm(confirmMessage)) return;
+    const confirmed = await confirmDialog({
+      title: "Delete Workspace?",
+      description: `Are you sure you want to permanently delete "${orgToEdit.name}"?\n\nThis will remove all associated ledger books, transaction logs, and attachments for this workspace.`,
+      confirmText: "Delete Workspace",
+      cancelText: "Keep Workspace",
+      variant: "danger",
+      icon: "trash",
+    });
+    if (!confirmed) return;
 
     setLoading(true);
     setError("");

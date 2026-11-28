@@ -5,6 +5,7 @@ import { localDb } from "@/lib/local-db";
 import { enqueueSyncItem } from "@/lib/sync-service";
 import { X, Archive, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { confirmDialog, alertDialog } from "@/store/confirm-store";
 
 interface EditExpenseModalProps {
   isOpen: boolean;
@@ -115,10 +116,18 @@ export default function EditExpenseModal({
   async function handleArchiveToggle() {
     if (!expense) return;
     const newArchived = !expense.isArchived;
-    const confirmMsg = newArchived
-      ? "Are you sure you want to archive this book? It will be hidden from the active list."
-      : "Unarchive this book and restore to active list?";
-    if (!confirm(confirmMsg)) return;
+
+    const confirmed = await confirmDialog({
+      title: newArchived ? "Archive Book Ledger?" : "Unarchive Book Ledger?",
+      description: newArchived
+        ? `Are you sure you want to archive "${expense.title}"? It will be hidden from the active list but all transactions remain preserved.`
+        : `Unarchive "${expense.title}" and restore it to your active books list?`,
+      confirmText: newArchived ? "Archive Book" : "Unarchive",
+      cancelText: "Cancel",
+      variant: newArchived ? "warning" : "info",
+      icon: "archive",
+    });
+    if (!confirmed) return;
 
     setLoading(true);
     try {
@@ -142,7 +151,7 @@ export default function EditExpenseModal({
       onClose();
       router.push("/dashboard");
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to change archive status");
+      setError(err instanceof Error ? err.message : "Failed to change archive status");
       setLoading(false);
     }
   }
@@ -150,15 +159,24 @@ export default function EditExpenseModal({
   async function handleDelete() {
     if (!expense) return;
     if (expense.logCount > 0) {
-      alert(
-        `Cannot delete "${expense.title}" because it contains ${expense.logCount} transactions. Archive this book instead to preserve audit records.`
+      await alertDialog(
+        "Cannot Delete Book",
+        `"${expense.title}" contains ${expense.logCount} transactions. Archive this book instead to preserve required audit history.`,
+        "warning"
       );
       return;
     }
 
-    if (!confirm(`Are you sure you want to permanently delete "${expense.title}"?`)) {
-      return;
-    }
+    const confirmed = await confirmDialog({
+      title: "Delete Book Ledger?",
+      description: `Are you sure you want to permanently delete "${expense.title}"? This action cannot be undone.`,
+      confirmText: "Delete Book",
+      cancelText: "Keep Book",
+      variant: "danger",
+      icon: "trash",
+    });
+
+    if (!confirmed) return;
 
     setLoading(true);
     try {
@@ -177,7 +195,7 @@ export default function EditExpenseModal({
       onClose();
       router.push("/dashboard");
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to delete book");
+      setError(err instanceof Error ? err.message : "Failed to delete book");
       setLoading(false);
     }
   }

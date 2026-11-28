@@ -10,6 +10,7 @@ import LogDetailsModal from "@/components/dashboard/LogDetailsModal";
 import BookDetailsModal from "@/components/dashboard/BookDetailsModal";
 import { useAppStore } from "@/store/app-store";
 import { useOrgPermissions } from "@/hooks/useOrgPermissions";
+import { confirmDialog } from "@/store/confirm-store";
 import { localDb, LocalDailyLog } from "@/lib/local-db";
 import { enqueueSyncItem } from "@/lib/sync-service";
 import { formatCleanAmount, formatCurrency, formatDate, formatTime } from "@/lib/utils";
@@ -342,7 +343,16 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   // Optimistic log deletion
   async function handleDeleteLog(logId: string) {
     if (!canDeleteTransaction) return;
-    if (!confirm("Are you sure you want to delete this transaction?")) return;
+
+    const confirmed = await confirmDialog({
+      title: "Delete Transaction?",
+      description: "Are you sure you want to delete this transaction? This action will adjust the book's net balance.",
+      confirmText: "Delete",
+      cancelText: "Keep",
+      variant: "danger",
+      icon: "trash",
+    });
+    if (!confirmed) return;
 
     const targetLog = rawLogs.find((l) => l.id === logId);
     try {

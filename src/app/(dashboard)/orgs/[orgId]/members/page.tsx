@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, use } from "react";
 import Link from "next/link";
 import AppHeader from "@/components/layout/AppHeader";
 import { useAppStore } from "@/store/app-store";
+import { confirmDialog, alertDialog } from "@/store/confirm-store";
 import { ArrowLeft, Mail, Trash2, UserPlus, Users } from "lucide-react";
 
 type PageProps = {
@@ -86,15 +87,25 @@ export default function MembersPage({ params }: PageProps) {
       });
       if (res.ok) {
         loadMembers();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        await alertDialog("Update Failed", data.error || "Failed to update member role", "warning");
       }
     } catch {
-      alert("Failed to update member role");
+      await alertDialog("Network Error", "Failed to communicate with server to update member role", "danger");
     }
   }
 
   async function handleRemoveMember(userId: string) {
-    if (!confirm("Are you sure you want to remove this member from the organization?"))
-      return;
+    const confirmed = await confirmDialog({
+      title: "Remove Workspace Member?",
+      description: "Are you sure you want to remove this member? They will lose access to all organization ledgers.",
+      confirmText: "Remove Member",
+      cancelText: "Keep Member",
+      variant: "danger",
+      icon: "trash",
+    });
+    if (!confirmed) return;
 
     try {
       const res = await fetch(`/api/v1/orgs/${orgId}/members/${userId}`, {
@@ -102,9 +113,12 @@ export default function MembersPage({ params }: PageProps) {
       });
       if (res.ok) {
         loadMembers();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        await alertDialog("Remove Failed", data.error || "Failed to remove member", "warning");
       }
     } catch {
-      alert("Failed to remove member");
+      await alertDialog("Network Error", "Failed to remove member from organization", "danger");
     }
   }
 
