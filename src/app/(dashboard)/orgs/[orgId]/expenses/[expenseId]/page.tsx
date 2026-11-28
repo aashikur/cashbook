@@ -412,10 +412,11 @@ export default function ExpenseDetailPage({ params }: PageProps) {
       {/* Top Header */}
       <header className="sticky top-0 z-40 bg-surface border-b border-border-subtle px-4 py-3">
         <div className="max-w-xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Link
               href="/dashboard"
-              className="p-1 rounded-full text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-95 transition-all cursor-pointer"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
+              title="Back to Dashboard"
             >
               <ArrowLeft size={20} />
             </Link>
@@ -424,22 +425,24 @@ export default function ExpenseDetailPage({ params }: PageProps) {
             </h1>
           </div>
 
-          <div className="flex items-center gap-1.5 relative" ref={menuRef}>
+          <div className="flex items-center gap-1 relative" ref={menuRef}>
             <Link
               href={`/orgs/${orgId}/members`}
-              className="p-1.5 rounded-full text-txt-secondary hover:bg-subtle transition-colors"
-              title="Team"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
+              title="Team Members"
             >
-              <UserPlus size={18} />
+              <UserPlus size={19} />
             </Link>
 
-            {/* 3-Dot Action Menu */}
+            {/* 3-Dot Action Menu with 48x48 Mobile Native Target */}
             <button
+              type="button"
               onClick={() => setIsHeaderMenuOpen((prev) => !prev)}
-              className="p-1.5 rounded-full text-txt-secondary hover:bg-subtle transition-colors cursor-pointer"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-95 transition-all cursor-pointer touch-manipulation shrink-0"
               title="More Options"
+              aria-label="More Options"
             >
-              <MoreVertical size={18} />
+              <MoreVertical size={20} />
             </button>
 
             {/* Header Dropdown Popover */}
@@ -826,7 +829,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                         {isPositive ? `+${cleanAmount}` : `-${cleanAmount}`}
                       </span>
 
-                      {/* Edit Button (Admin/Editor only) */}
+                      {/* Edit Button (Admin/Editor only, 48x48 hit-box) */}
                       {canEditTransaction && (
                         <button
                           type="button"
@@ -834,14 +837,14 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                             e.stopPropagation();
                             setEditingLog(log);
                           }}
-                          className="p-1.5 rounded-lg text-txt-muted hover:text-primary hover:bg-primary-light transition-colors cursor-pointer"
+                          className="relative min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-txt-muted hover:text-primary hover:bg-primary-light active:scale-90 transition-all cursor-pointer touch-manipulation before:absolute before:-inset-1.5 before:content-['']"
                           title="Edit Transaction"
                         >
-                          <Edit2 size={13} />
+                          <Edit2 size={14} />
                         </button>
                       )}
 
-                      {/* Delete Button (Admin/Editor only) */}
+                      {/* Delete Button (Admin/Editor only, 48x48 hit-box) */}
                       {canDeleteTransaction && (
                         <button
                           type="button"
@@ -849,10 +852,10 @@ export default function ExpenseDetailPage({ params }: PageProps) {
                             e.stopPropagation();
                             handleDeleteLog(log.id);
                           }}
-                          className="p-1.5 rounded-lg text-txt-muted hover:text-cash-out hover:bg-cash-out-light transition-colors cursor-pointer"
+                          className="relative min-w-[36px] min-h-[36px] flex items-center justify-center rounded-xl text-txt-muted hover:text-cash-out hover:bg-cash-out-light active:scale-90 transition-all cursor-pointer touch-manipulation before:absolute before:-inset-1.5 before:content-['']"
                           title="Delete Transaction"
                         >
-                          <Trash2 size={13} />
+                          <Trash2 size={14} />
                         </button>
                       )}
                     </div>
@@ -895,19 +898,19 @@ export default function ExpenseDetailPage({ params }: PageProps) {
         <div className="max-w-xl mx-auto flex gap-3">
           {canAddTransaction ? (
             <>
-              {/* Green Cash In Button */}
+              {/* Green Cash In Button (48px mobile touch height) */}
               <button
                 onClick={handleOpenCashIn}
-                className="btn-cash-in flex-1 cursor-pointer active:scale-95 transition-transform"
+                className="btn-cash-in flex-1 min-h-[48px] py-3 text-sm font-bold active:scale-[0.98] transition-transform flex items-center justify-center gap-2 rounded-2xl touch-manipulation shadow-sm cursor-pointer"
               >
                 <Plus size={18} strokeWidth={2.5} />
                 <span>Cash In</span>
               </button>
 
-              {/* Red Cash Out Button */}
+              {/* Red Cash Out Button (48px mobile touch height) */}
               <button
                 onClick={handleOpenCashOut}
-                className="btn-cash-out flex-1 cursor-pointer active:scale-95 transition-transform"
+                className="btn-cash-out flex-1 min-h-[48px] py-3 text-sm font-bold active:scale-[0.98] transition-transform flex items-center justify-center gap-2 rounded-2xl touch-manipulation shadow-sm cursor-pointer"
               >
                 <Minus size={18} strokeWidth={2.5} />
                 <span>Cash Out</span>
