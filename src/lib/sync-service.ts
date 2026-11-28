@@ -192,6 +192,18 @@ export async function processSyncQueue(): Promise<{
         } else {
           failed++;
         }
+      } else if (item.entityType === "expense" && item.operation === "DELETE") {
+        const res = await fetch(`/api/v1/orgs/${item.orgId}/expenses/${item.entityId}`, {
+          method: "DELETE",
+        });
+
+        // 200 OK or 404 Not Found (already deleted on server) are both successful syncs
+        if (res.ok || res.status === 404) {
+          await localDb.syncQueue.delete(item.id);
+          processed++;
+        } else {
+          failed++;
+        }
       }
     } catch (err) {
       console.error(`Sync queue item ${item.id} error:`, err);

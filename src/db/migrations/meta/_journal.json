@@ -8,6 +8,13 @@
       "when": 1795200900238,
       "tag": "0000_funny_baron_zemo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795842465509,
+      "tag": "0001_faithful_diamondback",
+      "breakpoints": true
     }
   ]
 }

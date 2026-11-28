@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { expenses, dailyLogs } from "@/db/schema";
 import { requireOrgMember } from "@/lib/auth-helpers";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +23,18 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
 
   const serverTimestamp = new Date().toISOString();
 
-  // Query expenses updated since timestamp
+  // Query expenses:
+  // - If delta sync (?since=...): return all modified records (including tombstones with deletedAt so clients purge them)
+  // - If cold sync (no ?since): return only active records to save bandwidth
+  const expenseConditions = [eq(expenses.orgId, orgId)];
+  if (sinceParam) {
+    expenseConditions.push(gt(expenses.updatedAt, sinceDate));
+  } else {
+    expenseConditions.push(isNull(expenses.deletedAt));
+  }
+
   const updatedExpensesRaw = await db.query.expenses.findMany({
-    where: and(eq(expenses.orgId, orgId), gt(expenses.updatedAt, sinceDate)),
+    where: and(...expenseConditions),
     with: {
       createdByUser: {
         columns: { id: true, name: true, email: true },
@@ -42,9 +51,18 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
     updatedByName: e.updatedByUser?.name || e.updatedByUser?.email || null,
   }));
 
-  // Query daily logs updated since timestamp (includes soft-deleted items with deletedAt so mobile client deletes them)
+  // Query daily logs:
+  // - If delta sync (?since=...): return all modified records (including soft-deleted with deletedAt)
+  // - If cold sync (no ?since): return only active non-deleted logs
+  const logConditions = [eq(dailyLogs.orgId, orgId)];
+  if (sinceParam) {
+    logConditions.push(gt(dailyLogs.updatedAt, sinceDate));
+  } else {
+    logConditions.push(isNull(dailyLogs.deletedAt));
+  }
+
   const updatedLogsRaw = await db.query.dailyLogs.findMany({
-    where: and(eq(dailyLogs.orgId, orgId), gt(dailyLogs.updatedAt, sinceDate)),
+    where: and(...logConditions),
     with: {
       loggedByUser: {
         columns: { id: true, name: true, email: true },
