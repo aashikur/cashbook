@@ -18,17 +18,25 @@ docs/
 │   ├── README.md                             # Master study modules table of contents
 │   ├── 01-project-setup-and-tech-stack.md    # Scaffolding, dependency rationale, folder architecture
 │   ├── 02-database-schema-and-drizzle.md     # Integer paisa, compound partitioning indexes, tombstones
-│   ├── 03-authentication-better-auth.md     # Better Auth, Google OAuth, session guards, tenant isolation
+│   ├── 03-authentication-better-auth.md      # Better Auth, Google OAuth, session guards, tenant isolation
 │   ├── 04-rest-api-and-rbac.md               # Route handlers, cold vs delta sync, RBAC permission matrix
-│   ├── 05-offline-first-dexie-and-sync.md    # Dexie IndexedDB, WebP photo Blobs, background sync queue
+│   ├── 05-offline-first-dexie-and-sync.md    # Dexie IndexedDB, WebP photo Blobs, SW dev-only unregister
 │   ├── 06-external-services-guide.md         # Neon DB, Cloudflare R2 ($0 egress), Google, Resend setup
-│   ├── 07-clean-fintech-ui-and-tactile-system.md # White fintech theme, 48x48px hit-slop, tri-state skeletons
+│   ├── 07-clean-fintech-ui-and-tactile-system.md # Mobile edge-to-edge, BookActionsMenu, filter popovers, modal system
 │   └── 08-system-design-and-interview-prep.md   # Domain fundamentals, build blueprint, top 10 interview Q&A
 
 ../postman/                                   # Canonical API Collection & Docs (outside docs/)
 ├── cashbook.postman_collection.json          # Machine-executable Postman Collection v2.1.0
 └── README.md                                 # Human-readable API documentation with request/response payloads
 ```
+
+### Key Shared Components (v1.1)
+
+| Component | Path | Used In |
+| :--- | :--- | :--- |
+| `BookActionsMenu` | `src/components/dashboard/BookActionsMenu.tsx` | Dashboard `BookCard`, Entry Books header |
+| `BookDetailsModal` | `src/components/dashboard/BookDetailsModal.tsx` | Dashboard, Entry Books (via `BookActionsMenu`) |
+| `EditExpenseModal` | `src/components/expenses/EditExpenseModal.tsx` | Dashboard, Entry Books (via `BookActionsMenu`) |
 
 ---
 

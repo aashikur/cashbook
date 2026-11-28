@@ -75,3 +75,23 @@ The collection comes pre-configured with the following variables:
 - **Audit Trails & Attribution:** All mutations track `createdBy` / `loggedBy` and `updatedBy` along with ISO timestamps. Responses include joined `createdByName` / `loggedByName` and `updatedByName`.
 - **Amounts in Paisa:** Stored strictly as positive integer cents/paisa (`amountPaisa`).
 - **Audit Preserved:** Ledgers with `logCount > 0` cannot be hard deleted.
+
+---
+
+## 📝 Session Changelog
+
+### v1.1 — UI Refactor (2026-11-28)
+> No new API routes were added or modified. This was a **UI-only refactor session**.
+
+| Area | Change |
+| :--- | :--- |
+| **PWA Service Worker** | Bumped to `cashbook-pwa-v2`; dev-only auto-unregister + cache purge added |
+| **Dashboard** | Focus-search mode, edge-to-edge `px-0` layout, `BookActionsMenu` ⋮ shared component |
+| **BookActionsMenu** | New `src/components/dashboard/BookActionsMenu.tsx` — reused on Dashboard + Entry Books |
+| **BookDetailsModal** | Flat borderless design, `w-11 h-11` close button, no box-in-box styling |
+| **Filter Popovers** | Unified `fixed left-4 right-4 rounded-3xl sm:absolute` pattern across all 4 filters |
+| **AppHeader** | Super-admin-only conditional menu (Sign Out / System Health / Platform Admin) |
+| **WhatsApp** | Attribution link `https://wa.me/8801580563883` added across sign-in, sign-up, settings, health pages |
+| **Cleanup** | Removed `docs/postman/` duplicate dir, `scripts/migrate-neon.js`, `public/favicon.ico` conflict |
+
+All existing endpoint contracts (URL, method, request schema, response shape) remain unchanged.
