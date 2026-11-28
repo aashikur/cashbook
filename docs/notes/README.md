@@ -1,6 +1,9 @@
 # CashBook Engineering Study Notes & Implementation Guide
 
-Welcome to the CashBook engineering documentation. This notebook is designed as a structured, step-by-step study guide for building and maintaining an **offline-first, multi-tenant financial ledger PWA** architected for **10–15 years of scale**.
+Welcome to the CashBook engineering study notebook. This guide is organized as a structured, step-by-step curriculum for understanding, building, and maintaining an **offline-first, multi-tenant financial ledger PWA** architected for **10–15 years of scale**.
+
+> [!NOTE]
+> For the master documentation hub, see **[`docs/README.md`](../README.md)**. For continuous synchronization and AI writing standards, see **[`docs/DOCUMENTATION_STANDARDS.md`](../DOCUMENTATION_STANDARDS.md)**.
 
 ---
 

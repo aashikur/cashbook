@@ -113,7 +113,6 @@ export interface Category {
   updatedAt: string;
 }
 ```
-```
 
 ### 1.6 Client-Side Offline Models (Dexie.js / IndexedDB)
 ```typescript

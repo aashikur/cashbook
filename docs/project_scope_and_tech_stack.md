@@ -50,9 +50,12 @@
 
 ---
 
-## 4. Non-Functional Requirements & Guardrails
-* **Client-Side Image Compression:** Android/PC clients must compress receipt photos to WebP (`maxWidth: 1600px`, `quality: 0.8`) before storing in Dexie or uploading to R2.
-* **Offline Caching Window:** Mobile clients cache the **current fiscal year** (and previous 3 months) automatically for offline browsing; historical years (2–15 years back) are fetched on-demand when online.
-* **Strict Tenant Isolation:** Every database query and R2 object key (`orgs/{orgId}/{fiscalYear}/{fiscalMonth}/{uuid}.webp`) must be scoped and validated against `orgId` and active `org_members` permissions.
-*  Code will be production-ready and dry code as senior engineers split code. 
-*  loading.tsx will be used for loading state and error.tsx will be used for error state.
+## 4. Non-Functional Requirements & Architectural Guardrails
+
+* **Financial Precision Rule**: Monetary figures are stored and processed strictly as integer minor units (`amountPaisa`, `totalSpent`) to permanently eliminate floating-point drift over 10–15 years.
+* **Strict Multi-Tenant Isolation**: Every database query and R2 storage key (`orgs/{orgId}/{fiscalYear}/{fiscalMonth}/{uuid}.webp`) must be scoped by `orgId` and verified through `requireOrgMember(orgId, role?)`.
+* **Preserved Financial History**: Ledgers with `logCount > 0` must never be hard-deleted. Soft-archive (`isArchived: true`) and soft-delete tombstones (`deletedAt: timestamp`) are mandatory to ensure historical balance integrity.
+* **Local-First / 0ms UX**: UI components must leverage Dexie IndexedDB cache (`localDb`) for instant 0ms rendering and use background SWR / Delta sync (`/sync?since=`) for server freshness.
+* **Client-Side Image Compression**: Mobile and PC clients compress receipt photos to WebP (`maxWidth: 1600px`, `quality: 0.8`) before storing as Blobs in IndexedDB or uploading to Cloudflare R2 ($0 egress fees).
+* **Mobile Touch Standard**: All interactive touch targets must meet the 48x48 physical pixel standard via CSS pseudo-element hit-slop (`before:-inset-2`) while keeping desktop visual density crisp.
+* **Continuous Documentation Synchronization**: Zero-prompt synchronization of API contracts, Postman collections, architecture notes, and interview guides on every code modification.
