@@ -121,58 +121,18 @@ export default function ExpenseLedgerList({
         </h2>
 
         <div className="flex items-center gap-2">
-          {/* Desktop View Mode Toggle: Grid vs Column vs Compact List (Hidden on mobile for clean 48x48 ergonomics) */}
-          <div className="hidden sm:flex items-center bg-surface border border-border-default rounded-xl p-0.5 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => handleViewModeChange("grid")}
-              className={`min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
-                viewMode === "grid"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-txt-muted hover:text-txt-main hover:bg-subtle"
-              }`}
-              title="Card view (Spacious)"
-            >
-              <LayoutGrid size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleViewModeChange("columns")}
-              className={`min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
-                viewMode === "columns"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-txt-muted hover:text-txt-main hover:bg-subtle"
-              }`}
-              title="Column view (Multi-column on PC)"
-            >
-              <Columns2 size={15} />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleViewModeChange("list")}
-              className={`min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
-                viewMode === "list"
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-txt-muted hover:text-txt-main hover:bg-subtle"
-              }`}
-              title="Compact list view (High density)"
-            >
-              <List size={15} />
-            </button>
-          </div>
-
-          {/* Unified Sort (Desktop & Mobile) + View Switcher (Mobile) with 48x48px Touch Target */}
+          {/* Unified Sort & View Menu Button (48x48px Native Touch Target) */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setIsFilterOpen((prev) => !prev)}
-              className={`relative min-w-[40px] min-h-[40px] sm:min-w-[38px] sm:min-h-[38px] rounded-xl border transition-all cursor-pointer flex items-center justify-center touch-manipulation before:absolute before:-inset-1 before:content-[''] ${
+              className={`relative min-w-[40px] min-h-[40px] rounded-xl border transition-all cursor-pointer flex items-center justify-center touch-manipulation before:absolute before:-inset-1 before:content-[''] ${
                 isFilterOpen || sortOption !== "updated"
                   ? "bg-primary-light text-primary border-primary-border shadow-2xs"
                   : "bg-surface text-txt-main border-border-default hover:bg-subtle shadow-2xs"
               }`}
-              title="Sort & Display Options"
-              aria-label="Sort and display options"
+              title="Sort & View Options"
+              aria-label="Sort and view options"
             >
               <ArrowUpDown size={16} />
             </button>
@@ -188,7 +148,7 @@ export default function ExpenseLedgerList({
 
                 <div className="absolute right-0 top-full mt-2 z-40 w-52 bg-surface border border-border-default rounded-2xl shadow-xl p-2 animate-in fade-in zoom-in-95 duration-100 flex flex-col gap-0.5">
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-txt-muted">
-                    Sort books by
+                    Sort by
                   </div>
                   <button
                     type="button"
@@ -244,54 +204,73 @@ export default function ExpenseLedgerList({
                     )}
                   </button>
 
-                  {/* Mobile-Only View Layout Selector inside Dropdown */}
-                  <div className="sm:hidden">
-                    <div className="my-1.5 border-t border-border-subtle" />
-                    <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-txt-muted">
-                      View layout
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleViewModeChange("grid");
-                        setIsFilterOpen(false);
-                      }}
-                      className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer touch-manipulation ${
-                        viewMode === "grid" || viewMode === "columns"
-                          ? "bg-primary-light text-primary font-bold"
-                          : "text-txt-main hover:bg-subtle"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <LayoutGrid size={14} />
-                        <span>Card View</span>
-                      </span>
-                      {(viewMode === "grid" || viewMode === "columns") && (
-                        <Check size={15} className="stroke-[2.5]" />
-                      )}
-                    </button>
+                  <div className="my-1.5 border-t border-border-subtle" />
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleViewModeChange("list");
-                        setIsFilterOpen(false);
-                      }}
-                      className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer touch-manipulation ${
-                        viewMode === "list"
-                          ? "bg-primary-light text-primary font-bold"
-                          : "text-txt-main hover:bg-subtle"
-                      }`}
-                    >
-                      <span className="flex items-center gap-2">
-                        <List size={14} />
-                        <span>Compact List</span>
-                      </span>
-                      {viewMode === "list" && (
-                        <Check size={15} className="stroke-[2.5]" />
-                      )}
-                    </button>
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-txt-muted">
+                    View
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleViewModeChange("grid");
+                      setIsFilterOpen(false);
+                    }}
+                    className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer touch-manipulation ${
+                      viewMode === "grid"
+                        ? "bg-primary-light text-primary font-bold"
+                        : "text-txt-main hover:bg-subtle"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <LayoutGrid size={14} />
+                      <span>Card View</span>
+                    </span>
+                    {viewMode === "grid" && (
+                      <Check size={15} className="stroke-[2.5]" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleViewModeChange("list");
+                      setIsFilterOpen(false);
+                    }}
+                    className={`w-full min-h-[44px] flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer touch-manipulation ${
+                      viewMode === "list"
+                        ? "bg-primary-light text-primary font-bold"
+                        : "text-txt-main hover:bg-subtle"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <List size={14} />
+                      <span>Compact List</span>
+                    </span>
+                    {viewMode === "list" && (
+                      <Check size={15} className="stroke-[2.5]" />
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleViewModeChange("columns");
+                      setIsFilterOpen(false);
+                    }}
+                    className={`hidden sm:flex w-full min-h-[44px] items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer touch-manipulation ${
+                      viewMode === "columns"
+                        ? "bg-primary-light text-primary font-bold"
+                        : "text-txt-main hover:bg-subtle"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Columns2 size={14} />
+                      <span>2-Column Grid</span>
+                    </span>
+                    {viewMode === "columns" && (
+                      <Check size={15} className="stroke-[2.5]" />
+                    )}
+                  </button>
                 </div>
               </>
             )}
@@ -300,7 +279,7 @@ export default function ExpenseLedgerList({
           {activeOrg?.role === "admin" && (
             <button
               onClick={() => setAddExpenseOpen(true)}
-              className="relative btn-pill-primary min-h-[40px] sm:min-h-[38px] cursor-pointer active:scale-95 transition-transform flex items-center gap-1.5 py-2 px-3.5 shrink-0 whitespace-nowrap touch-manipulation before:absolute before:-inset-1 before:content-['']"
+              className="relative btn-pill-primary min-h-[40px] cursor-pointer active:scale-95 transition-transform flex items-center gap-1.5 py-2 px-4 shrink-0 whitespace-nowrap touch-manipulation before:absolute before:-inset-1 before:content-['']"
             >
               <Plus size={15} />
               <span>Add</span>
