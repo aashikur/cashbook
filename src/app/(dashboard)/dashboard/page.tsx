@@ -29,6 +29,7 @@ export default function DashboardPage() {
   }, []);
 
   // 1. Live query from local Dexie IndexedDB (Reactive offline-first)
+  // Omit default [] so localExpenses returns undefined while resolving async IndexedDB
   const localExpenses = useLiveQuery(
     async () => {
       if (!activeOrg) return [];
@@ -39,9 +40,10 @@ export default function DashboardPage() {
         .reverse()
         .sortBy("updatedAt");
     },
-    [activeOrg?.id],
-    []
+    [activeOrg?.id]
   );
+
+  const isBooksLoading = localExpenses === undefined;
 
   // 2. Fetch server updates & delta sync
   const loadData = useCallback(async () => {
@@ -325,6 +327,7 @@ export default function DashboardPage() {
         {/* Your Books Section with + Add New Book button */}
         <ExpenseLedgerList
           expenses={sortedExpenses as ExpenseItem[]}
+          isLoading={isBooksLoading}
           sortOption={sortOption}
           onSortChange={handleSortChange}
         />

@@ -23,12 +23,14 @@ export interface ExpenseItem {
 
 interface ExpenseLedgerListProps {
   expenses: ExpenseItem[];
+  isLoading?: boolean;
   sortOption?: BookSortOption;
   onSortChange?: (option: BookSortOption) => void;
 }
 
 export default function ExpenseLedgerList({
   expenses,
+  isLoading = false,
   sortOption: controlledSortOption,
   onSortChange,
 }: ExpenseLedgerListProps) {
@@ -250,7 +252,42 @@ export default function ExpenseLedgerList({
       </div>
 
       {/* Book Cards / List */}
-      {sortedExpenses.length === 0 ? (
+      {isLoading ? (
+        <div
+          className={
+            viewMode === "columns"
+              ? "w-full grid grid-cols-1 sm:grid-cols-2 gap-2 animate-pulse"
+              : viewMode === "list"
+              ? "w-full flex flex-col gap-1.5 animate-pulse"
+              : "w-full flex flex-col gap-2 animate-pulse"
+          }
+        >
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div
+              key={i}
+              className="w-full flex items-center justify-between p-3.5 sm:p-4 bg-surface rounded-[12px] border border-border-subtle/50 shadow-2xs"
+            >
+              <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                <div className="w-10 h-10 rounded-xl bg-slate-200/70 shrink-0" />
+                <div className="flex flex-col gap-1.5 flex-1">
+                  <div
+                    className="h-4 bg-slate-200/70 rounded-md"
+                    style={{ width: i % 2 === 0 ? "55%" : "70%" }}
+                  />
+                  <div className="h-3 w-24 bg-slate-100 rounded-md" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5 sm:gap-3 shrink-0">
+                <div className="h-5 w-16 bg-slate-200/70 rounded-md" />
+                <div className="flex items-center gap-1">
+                  <div className="w-7 h-7 rounded-lg bg-emerald-500/15 border border-emerald-500/20" />
+                  <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/20" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : sortedExpenses.length === 0 ? (
         <div className="flex flex-col items-center justify-center p-8 bg-surface border border-dashed border-border-default rounded-3xl text-center gap-3 my-2 shadow-sm">
           <div className="w-12 h-12 rounded-2xl bg-primary-light text-primary flex items-center justify-center">
             <BookOpen size={22} />
