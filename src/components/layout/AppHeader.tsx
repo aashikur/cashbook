@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAppStore, OrgContext } from "@/store/app-store";
@@ -35,6 +35,28 @@ export default function AppHeader() {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(true);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleOutside(e: MouseEvent | TouchEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    function handleEsc(e: KeyboardEvent) {
+      if (e.key === "Escape") setIsDropdownOpen(false);
+    }
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleOutside);
+      document.addEventListener("touchstart", handleOutside);
+      document.addEventListener("keydown", handleEsc);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutside);
+      document.removeEventListener("touchstart", handleOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [isDropdownOpen]);
 
   useEffect(() => {
     setIsOnline(navigator.onLine);
@@ -116,13 +138,16 @@ export default function AppHeader() {
     <header className="sticky top-0 z-40 w-full bg-surface border-b border-border-subtle px-4 py-3">
       <div className="max-w-xl mx-auto flex items-center justify-between">
         {/* User Profile & Org Switcher (Screen 1 Reference) */}
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <button
+            type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-            className="flex items-center gap-2.5 p-1 rounded-full hover:bg-subtle transition-colors cursor-pointer"
+            className="relative flex items-center gap-2.5 p-1 pr-2 min-h-[44px] rounded-full hover:bg-subtle transition-colors cursor-pointer touch-manipulation before:absolute before:-inset-1 before:content-['']"
+            aria-expanded={isDropdownOpen}
+            aria-haspopup="menu"
           >
             {/* User Avatar Circle */}
-            <div className="w-8 h-8 rounded-full bg-primary text-white font-bold text-xs flex items-center justify-center shadow-sm">
+            <div className="w-9 h-9 rounded-full bg-primary text-white font-bold text-xs flex items-center justify-center shadow-sm shrink-0">
               {initials}
             </div>
 
@@ -130,24 +155,27 @@ export default function AppHeader() {
               <span className="text-sm font-bold text-txt-main tracking-tight max-w-[140px] sm:max-w-[190px] truncate line-clamp-1 text-left">
                 {displayName}
               </span>
-              <ChevronDown size={14} className="text-txt-muted shrink-0" />
+              <ChevronDown size={15} className="text-txt-muted shrink-0" />
             </div>
           </button>
 
-          {/* Dropdown Menu */}
+          {/* Dropdown Menu: Full-width on mobile for easy thumb reach, anchored w-80 on desktop */}
           {isDropdownOpen && (
-            <div className="absolute left-0 top-full mt-2 w-72 max-w-[calc(100vw-2rem)] bg-surface border border-border-default rounded-2xl shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-150">
-              <div className="px-3 py-1.5 text-[10px] font-bold text-txt-muted uppercase tracking-wider truncate">
-                Select Your Current Business / Workspace
+            <div
+              role="menu"
+              className="fixed left-3 right-3 top-[64px] w-auto sm:absolute sm:left-0 sm:right-auto sm:top-full sm:mt-2 sm:w-80 bg-surface border border-border-default rounded-3xl sm:rounded-2xl shadow-2xl py-2.5 z-50 animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div className="px-4 py-2 text-[11px] font-bold text-txt-muted uppercase tracking-wider truncate">
+                Select Your Business / Workspace
               </div>
 
-              <div className="flex flex-col gap-0.5 px-1.5 max-h-56 overflow-y-auto">
+              <div className="flex flex-col gap-1 px-2 max-h-64 overflow-y-auto">
                 {orgs.map((org) => {
                   const isCurrent = activeOrg?.id === org.id;
                   return (
                     <div
                       key={org.id}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 text-xs rounded-xl transition-colors ${
+                      className={`w-full flex items-center justify-between min-h-[48px] px-3 py-1.5 text-sm sm:text-xs rounded-2xl sm:rounded-xl transition-colors ${
                         isCurrent
                           ? "text-primary font-bold bg-primary-light"
                           : "text-txt-secondary hover:bg-subtle"
@@ -159,10 +187,10 @@ export default function AppHeader() {
                           setActiveOrg(org);
                           setIsDropdownOpen(false);
                         }}
-                        className="flex-1 flex items-center justify-between min-w-0 pr-2 cursor-pointer text-left"
+                        className="flex-1 flex items-center justify-between min-h-[44px] min-w-0 pr-2 cursor-pointer text-left touch-manipulation"
                       >
-                        <span className="truncate">{org.name}</span>
-                        <span className="text-[10px] text-txt-muted font-mono ml-2">
+                        <span className="truncate font-semibold">{org.name}</span>
+                        <span className="text-[11px] text-txt-muted font-mono ml-2 shrink-0">
                           {org.currency}
                         </span>
                       </button>
@@ -175,65 +203,68 @@ export default function AppHeader() {
                           setEditOrgOpen(true);
                           setIsDropdownOpen(false);
                         }}
-                        className="p-1 rounded-lg text-txt-muted hover:text-primary hover:bg-surface/80 transition-colors cursor-pointer"
+                        className="relative min-w-[40px] min-h-[40px] flex items-center justify-center rounded-xl text-txt-muted hover:text-primary hover:bg-surface/80 active:scale-90 transition-all cursor-pointer touch-manipulation before:absolute before:-inset-1 before:content-['']"
                         title="Edit Workspace"
+                        aria-label={`Edit ${org.name}`}
                       >
-                        <Settings size={13} />
+                        <Settings size={16} />
                       </button>
                     </div>
                   );
                 })}
               </div>
 
-              <div className="my-1 border-t border-border-subtle" />
+              <div className="my-1.5 border-t border-border-subtle" />
 
               <button
+                type="button"
                 onClick={() => {
                   setIsDropdownOpen(false);
                   setOrgSwitcherOpen(true);
                 }}
-                className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-semibold text-primary hover:bg-primary-light transition-colors cursor-pointer"
+                className="w-full min-h-[48px] flex items-center gap-3 px-4 py-2.5 text-sm sm:text-xs font-semibold text-primary hover:bg-primary-light active:scale-[0.99] transition-all cursor-pointer touch-manipulation"
               >
-                <Plus size={14} />
+                <Plus size={16} />
                 <span>Create New Workspace</span>
               </button>
 
               {isSuperAdmin && (
                 <>
-                  <div className="my-1 border-t border-border-subtle" />
+                  <div className="my-1.5 border-t border-border-subtle" />
                   <Link
                     href="/health"
                     onClick={() => setIsDropdownOpen(false)}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-txt-secondary hover:text-txt-main hover:bg-subtle transition-colors cursor-pointer"
+                    className="w-full min-h-[48px] flex items-center gap-3 px-4 py-2.5 text-sm sm:text-xs font-semibold text-txt-secondary hover:text-txt-main hover:bg-subtle active:scale-[0.99] transition-all cursor-pointer touch-manipulation"
                   >
-                    <Activity size={14} className="text-cash-in" />
+                    <Activity size={16} className="text-cash-in" />
                     <span>System Health & Status</span>
                   </Link>
 
                   <Link
                     href="/admin"
                     onClick={() => setIsDropdownOpen(false)}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-xs font-bold text-primary hover:bg-primary-light transition-colors cursor-pointer"
+                    className="w-full min-h-[48px] flex items-center gap-3 px-4 py-2.5 text-sm sm:text-xs font-bold text-primary hover:bg-primary-light active:scale-[0.99] transition-all cursor-pointer touch-manipulation"
                   >
-                    <ShieldCheck size={14} className="stroke-[2.5]" />
+                    <ShieldCheck size={16} className="stroke-[2.5]" />
                     <span>Platform Super Admin</span>
                   </Link>
                 </>
               )}
 
-              <div className="my-1 border-t border-border-subtle" />
+              <div className="my-1.5 border-t border-border-subtle" />
 
               <button
+                type="button"
                 onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-cash-out hover:bg-cash-out-light transition-colors cursor-pointer"
+                className="w-full min-h-[48px] flex items-center gap-3 px-4 py-2.5 text-sm sm:text-xs font-semibold text-cash-out hover:bg-cash-out-light active:scale-[0.99] transition-all cursor-pointer touch-manipulation"
               >
-                <LogOut size={14} />
+                <LogOut size={16} />
                 <span>Sign Out</span>
               </button>
 
               {/* Developer Attribution (Read-only) */}
-              <div className="py-2 px-2 text-center border-t border-border-subtle mt-1.5 bg-subtle/30 rounded-b-2xl">
-                <p className="text-[10px] text-txt-muted font-medium whitespace-nowrap tracking-tight">
+              <div className="py-2.5 px-3 text-center border-t border-border-subtle mt-1.5 bg-subtle/30 rounded-b-3xl sm:rounded-b-2xl">
+                <p className="text-[11px] text-txt-muted font-medium whitespace-nowrap tracking-tight">
                   CashBook v1.1 • Designed & Developed by{" "}
                   <span className="font-semibold text-txt-main">
                     Aashikur Rahaman
@@ -273,10 +304,11 @@ export default function AppHeader() {
           {activeOrg && (
             <Link
               href={`/orgs/${activeOrg.id}/members`}
-              className="w-8 h-8 rounded-full flex items-center justify-center text-txt-secondary hover:text-primary hover:bg-subtle transition-colors"
+              className="relative w-10 h-10 rounded-full flex items-center justify-center text-txt-secondary hover:text-primary hover:bg-subtle active:scale-95 transition-all touch-manipulation before:absolute before:-inset-1 before:content-['']"
               title="Team Members & Invitations"
+              aria-label="Team Members & Invitations"
             >
-              <UserPlus size={17} />
+              <UserPlus size={18} />
             </Link>
           )}
         </div>
