@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { expenses } from "@/db/schema";
 import { requireOrgMember } from "@/lib/auth-helpers";
-import { and, eq, desc } from "drizzle-orm";
+import { and, eq, desc, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +26,7 @@ export async function GET(req: NextRequest, { params }: RouteProps) {
   const { searchParams } = new URL(req.url);
   const includeArchived = searchParams.get("includeArchived") === "true";
 
-  const conditions = [eq(expenses.orgId, orgId)];
+  const conditions = [eq(expenses.orgId, orgId), isNull(expenses.deletedAt)];
   if (!includeArchived) {
     conditions.push(eq(expenses.isArchived, false));
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { expenses } from "@/db/schema";
 import { requireOrgMember } from "@/lib/auth-helpers";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,11 @@ export async function GET(_req: NextRequest, { params }: RouteProps) {
   if (!authRes.success) return authRes.response;
 
   const expense = await db.query.expenses.findFirst({
-    where: and(eq(expenses.id, expenseId), eq(expenses.orgId, orgId)),
+    where: and(
+      eq(expenses.id, expenseId),
+      eq(expenses.orgId, orgId),
+      isNull(expenses.deletedAt)
+    ),
     with: {
       createdByUser: {
         columns: { id: true, name: true, email: true },
@@ -68,7 +72,13 @@ export async function PATCH(req: NextRequest, { params }: RouteProps) {
         updatedBy: authRes.context.userId,
         updatedAt: new Date(),
       })
-      .where(and(eq(expenses.id, expenseId), eq(expenses.orgId, orgId)))
+      .where(
+        and(
+          eq(expenses.id, expenseId),
+          eq(expenses.orgId, orgId),
+          isNull(expenses.deletedAt)
+        )
+      )
       .returning();
 
     if (!updated) {
@@ -94,7 +104,7 @@ export async function PATCH(req: NextRequest, { params }: RouteProps) {
 }
 
 // DELETE /api/v1/orgs/:orgId/expenses/:expenseId (Admin only)
-// Docs ref §3.4: "Hard-deletes expense only if logCount === 0"
+// Docs ref §3.4: "Soft-deletes expense only if logCount === 0"
 export async function DELETE(_req: NextRequest, { params }: RouteProps) {
   const { orgId, expenseId } = await params;
   const authRes = await requireOrgMember(orgId, "admin");
@@ -104,11 +114,12 @@ export async function DELETE(_req: NextRequest, { params }: RouteProps) {
     where: and(eq(expenses.id, expenseId), eq(expenses.orgId, orgId)),
   });
 
-  if (!expense) {
-    return NextResponse.json(
-      { success: false, error: "Expense ledger not found" },
-      { status: 404 }
-    );
+  // Idempotent: If record is already deleted or missing, return success
+  if (!expense || expense.deletedAt) {
+    return NextResponse.json({
+      success: true,
+      message: "Expense ledger already deleted",
+    });
   }
 
   if (expense.logCount > 0) {
@@ -122,8 +133,14 @@ export async function DELETE(_req: NextRequest, { params }: RouteProps) {
     );
   }
 
+  const now = new Date();
   await db
-    .delete(expenses)
+    .update(expenses)
+    .set({
+      deletedAt: now,
+      updatedAt: now,
+      updatedBy: authRes.context.userId,
+    })
     .where(and(eq(expenses.id, expenseId), eq(expenses.orgId, orgId)));
 
   return NextResponse.json({

@@ -168,7 +168,7 @@ export default function EditExpenseModal({
         method: "DELETE",
       });
 
-      if (!res.ok) {
+      if (!res.ok && res.status !== 404) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Failed to delete book");
       }

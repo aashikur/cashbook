@@ -27,6 +27,7 @@ export type LocalExpense = {
   updatedByName?: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt?: string | null;
   syncStatus: SyncStatus;
   lastSyncError?: string;
 };

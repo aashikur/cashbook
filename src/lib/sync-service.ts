@@ -223,15 +223,21 @@ export async function performDeltaSync(orgId: string): Promise<void> {
     const { data } = await res.json();
     const { expenses: remoteExpenses, dailyLogs: remoteLogs, serverTimestamp } = data;
 
-    // Upsert remote expenses into Dexie
+    // Upsert or remove remote expenses into Dexie
     if (remoteExpenses && remoteExpenses.length > 0) {
-      await localDb.transaction("rw", localDb.expenses, async () => {
+      await localDb.transaction("rw", [localDb.expenses, localDb.dailyLogs], async () => {
         for (const exp of remoteExpenses) {
-          await localDb.expenses.put({
-            ...exp,
-            totalSpent: parseInt(exp.totalSpent, 10) || 0,
-            syncStatus: "synced",
-          });
+          if (exp.deletedAt) {
+            // Tombstone received: remove deleted book & its logs from local cache
+            await localDb.expenses.delete(exp.id);
+            await localDb.dailyLogs.where("expenseId").equals(exp.id).delete();
+          } else {
+            await localDb.expenses.put({
+              ...exp,
+              totalSpent: parseInt(exp.totalSpent, 10) || 0,
+              syncStatus: "synced",
+            });
+          }
         }
       });
     }

@@ -36,6 +36,7 @@ export const expenses = pgTable(
     updatedBy: text("updated_by").references(() => user.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at"), // Soft-delete tombstone for delta sync
   },
   (t) => [
     index("expenses_org_archived_updated_idx").on(
@@ -43,6 +44,7 @@ export const expenses = pgTable(
       t.isArchived,
       t.updatedAt
     ),
+    index("expenses_org_deleted_idx").on(t.orgId, t.deletedAt),
   ]
 );
 
