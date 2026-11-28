@@ -21,10 +21,24 @@ To ensure that querying 15 years of transaction history remains under 100ms:
   * `(orgId, fiscalYear, fiscalMonth, logDate DESC)` — Primary monthly ledger query.
   * `(orgId, expenseId, logDate DESC)` — Drill-down per category.
   * `(orgId, updatedAt)` — Incremental mobile delta sync (`?since=`).
+  * `(orgId, deletedAt)` (`expenses_org_deleted_idx`) — High-performance cold sync filtering and soft-delete tombstone tracking.
 
 ---
 
-## 3. Schema Tables Overview
+## 3. Soft-Delete Tombstones (Preserving Financial Auditability)
+
+In distributed offline-first systems, **hard deleting records (`DELETE FROM ...`) is catastrophic**:
+- If a server hard-deletes a book or entry, offline clients never receive the deletion event during delta sync. The deleted item remains cached on the client device forever ("phantom books").
+- Attempting to delete a phantom book from the client produces 404/400 errors because the record no longer exists on the server.
+- **Production Solution**: Both `expenses` and `daily_logs` use `deletedAt: timestamp("deleted_at")`.
+  - When deleted, `deletedAt = new Date()` and `updatedAt = new Date()`.
+  - Cold sync queries (`!since`) filter `isNull(deletedAt)` for instant payload savings.
+  - Delta sync queries (`?since=timestamp`) return the soft-deleted records as **tombstones**, instructing the client's Dexie database to purge the record and its sub-entries cleanly.
+  - Books with `logCount > 0` are protected from deletion; they can only be soft-archived (`isArchived: true`) to preserve historical balance integrity.
+
+---
+
+## 4. Schema Tables Overview
 
 ```
 users (Better Auth)

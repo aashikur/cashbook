@@ -164,3 +164,48 @@ a:active:not(:disabled) {
 4. **Sticky Dual Action Bar**: Fixed bottom bar featuring two equal-width CTA buttons:
    - `+ Cash In` (Vibrant green: `.btn-cash-in`)
    - `- Cash Out` (Vibrant red: `.btn-cash-out`)
+
+---
+
+## 5. Mobile Touch Standards: 48x48px Hit-Box Rules
+
+Mobile operating system standards (Apple Human Interface Guidelines & Google Material Design) require touch targets to be **at least 48x48 physical pixels** to prevent accidental mis-taps.
+
+* **The Design Dilemma**: In dense, high-information-density fintech tables and cards, a visually 48px button creates clumsy, bloated interfaces.
+* **The Solution (CSS Hit Slop)**: Keep the visible button compact (e.g., 32x32px or 36x36px) while expanding its invisible clickable area to 48x48px using a CSS pseudo-element:
+  ```tsx
+  className="relative min-w-[34px] min-h-[34px] touch-manipulation before:absolute before:-inset-2 before:content-['']"
+  ```
+* **Click Isolation**: Nested buttons inside clickable card links (`<Link href="...">`) must call `e.preventDefault()` and `e.stopPropagation()` to prevent unwanted parent navigation.
+
+---
+
+## 6. Tri-State Loading Lifecycle (Zero Cumulative Layout Shift)
+
+When combining client-side Dexie IndexedDB cache with background server SWR, naive boolean loading flags cause visual glitches:
+
+1. **The Problem**: If `cachedBooks.length === 0` initially while Dexie is opening, the UI prematurely renders the "No books found" empty state. 150ms later when Dexie completes or server data arrives, the screen jarringly shifts to show the books.
+2. **The Tri-State Lifecycle**:
+   - **State 1 (Hydrating / Loading)**: `cachedExpenses === undefined && !hasLoadedServer`. Displays smooth, pulsing skeleton placeholders (`BookListSkeleton`).
+   - **State 2 (Data Present)**: `books.length > 0`. Instantly renders books from cache with 0ms delay.
+   - **State 3 (Confirmed Empty)**: `books.length === 0 && (cachedExpenses !== undefined || hasLoadedServer)`. Only renders "No books found" when it is mathematically verified that zero books exist.
+
+---
+
+## 7. Promise-Based Native Mobile Dialogs
+
+Standard browser `window.confirm()` and `alert()` are blocking, non-stylable, and broken inside mobile PWAs and WebViews. However, importing massive external modal libraries (like SweetAlert2) adds 100KB+ of unnecessary JavaScript bloat.
+
+* **Production Architecture (`confirm-store.ts` & `ConfirmDialog.tsx`)**:
+  - Promise-based API that behaves like a native async function:
+    ```ts
+    const confirmed = await confirmDialog({
+      title: "Delete Book",
+      description: "Are you sure you want to delete this empty book?",
+      variant: "danger",
+      confirmText: "Delete",
+    });
+    if (!confirmed) return;
+    ```
+  - Resolvers are held at the module level (`let activeResolve = null`) rather than inside Zustand state to avoid functional state updater ambiguity.
+  - Dialog is fully accessible: `role="dialog"`, `aria-modal="true"`, listens for `Escape` key, closes on backdrop click, and respects dark mode.

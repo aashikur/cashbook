@@ -49,6 +49,20 @@ In `src/lib/auth-helpers.ts`:
 ### Sync, Presigned Uploads & Reporting
 | Method | Endpoint | RBAC | Function |
 | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/orgs/:orgId/sync` | Viewer | Delta sync (`?since=timestamp`) for mobile clients |
+| `GET` | `/api/v1/orgs/:orgId/sync` | Viewer | Cold (`!since`) or Delta sync (`?since=timestamp`) returning modified records and tombstones |
 | `POST` | `/api/v1/orgs/:orgId/uploads/presign` | Admin | Generates Cloudflare R2 presigned PUT URL |
 | `GET` | `/api/v1/orgs/:orgId/reports/summary` | Viewer | Monthly & expense breakdown for charts and exports |
+
+---
+
+## 3. RBAC Permission Matrix & Client-Side Lockout
+
+| Permission / Action | Admin / Editor | Viewer | UI Enforcement Mechanism |
+| :--- | :---: | :---: | :--- |
+| **View Dashboard, Ledgers & Logs** | ✅ | ✅ | Open to all active organization members |
+| **Create New Ledger Book** | ✅ | ❌ | `+ Add New Book` button hidden for Viewers |
+| **Quick Cash In / Out (+/-)** | ✅ | ❌ | Quick action buttons hidden on `BookCard` |
+| **Edit / Archive Ledger** | ✅ | ❌ | Edit & Archive options removed from dropdown menu |
+| **Delete Empty Ledger** | ✅ | ❌ | Delete option hidden; API enforces `logCount === 0` |
+| **Add / Edit / Delete Transactions** | ✅ | ❌ | `+ Cash In` and `- Cash Out` CTAs hidden; edit/delete icons removed |
+| **Invite & Manage Members** | ✅ | ❌ | Member invitation input & role toggles disabled |

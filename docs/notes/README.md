@@ -8,13 +8,14 @@ Welcome to the CashBook engineering documentation. This notebook is designed as 
 
 | Module | Topic | Description | Status |
 | :--- | :--- | :--- | :---: |
-| [01. Project Setup & Stack](./01-project-setup-and-tech-stack.md) | Next.js 15 + React 19 + Tailwind CSS | Initial scaffolding, dependency rationale, and clean project folder architecture | ✅ Complete |
-| [02. Database & Schema Design](./02-database-schema-and-drizzle.md) | Drizzle ORM + PostgreSQL | Integer minor units (paisa), 15-year compound indexing, and relational schema | ✅ Complete |
-| [03. Authentication & RBAC](./03-authentication-better-auth.md) | Better Auth + Session Guard | Self-hosted auth, Google OAuth, email verification, and multi-tenant tenant isolation | ✅ Complete |
-| [04. REST API & Endpoints](./04-rest-api-and-rbac.md) | Next.js App Router Route Handlers | Idempotent ledger creation, tenant verification, and delta sync endpoints | 🔄 In Progress |
-| [05. Offline Engine & Dexie.js](./05-offline-first-dexie-and-sync.md) | IndexedDB + Offline Sync Queue | Client-side database, binary photo Blobs, and idempotent background sync queue | 🔄 Next |
-| [06. External Services Setup](./06-external-services-guide.md) | Neon, Cloudflare R2, Google, Resend | Step-by-step account setup and environment variables guide | ✅ Complete |
-| [07. Clean Fintech UI & Tactile System](./07-clean-fintech-ui-and-tactile-system.md) | Mobile Fintech Theme & Interaction | Design tokens, zero-emoji policy, Lucide icon system, and touch feedback | ✅ Complete |
+| [01. Project Setup & Stack](./01-project-setup-and-tech-stack.md) | Next.js 15 + React 19 + Tailwind CSS | Scaffolding, dependency rationale, and clean project folder architecture | ✅ Complete |
+| [02. Database & Schema Design](./02-database-schema-and-drizzle.md) | Drizzle ORM + PostgreSQL | Integer minor units (paisa), 15-year compound indexing, tombstones, and relational schema | ✅ Complete |
+| [03. Authentication & RBAC](./03-authentication-better-auth.md) | Better Auth + Session Guard | Self-hosted auth, Google OAuth, email verification, and multi-tenant isolation | ✅ Complete |
+| [04. REST API & Endpoints](./04-rest-api-and-rbac.md) | Next.js App Router Route Handlers | Idempotent ledger creation, tenant verification, cold vs delta sync, and RBAC guards | ✅ Complete |
+| [05. Offline Engine & Dexie.js](./05-offline-first-dexie-and-sync.md) | IndexedDB + Offline Sync Queue | Local database, binary photo Blobs, tombstone purges, and offline mutation queue | ✅ Complete |
+| [06. External Services Setup](./06-external-services-guide.md) | Neon, Cloudflare R2, Google, Resend | Account setup, $0 egress receipt storage, and environment variables guide | ✅ Complete |
+| [07. Clean Fintech UI & Tactile System](./07-clean-fintech-ui-and-tactile-system.md) | Mobile Fintech Theme & Interaction | Design tokens, 48x48px native hit-slop, tri-state skeletons, and promise-based modals | ✅ Complete |
+| [08. System Design & Interview Guide](./08-system-design-and-interview-prep.md) | Architecture Study & Interview Mastery | Domain knowledge, architecture trade-offs, step-by-step build blueprint, and interview Q&A | ✅ Complete |
 
 ---
 
