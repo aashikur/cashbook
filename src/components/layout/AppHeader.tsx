@@ -52,10 +52,12 @@ export default function AppHeader() {
 
   useEffect(() => {
     let cancelled = false;
+    let redirecting = false;
     async function loadOrgs() {
       try {
         const res = await fetch("/api/v1/orgs");
         if (res.status === 401) {
+          redirecting = true;
           router.push("/sign-in");
           return;
         }
@@ -79,7 +81,7 @@ export default function AppHeader() {
       } catch (err) {
         console.error("Failed to load organizations:", err);
       } finally {
-        if (!cancelled) {
+        if (!cancelled && !redirecting) {
           setIsOrgsLoading(false);
         }
       }

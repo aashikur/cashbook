@@ -58,8 +58,12 @@ export default function ExpenseDetailPage({ params }: PageProps) {
   } = useOrgPermissions();
 
   // 1. Reactive Dexie queries (0ms Instant Load)
+  // Return null when absent so undefined strictly represents "Dexie still loading"
   const cachedExpense = useLiveQuery(
-    () => localDb.expenses.get(expenseId),
+    async () => {
+      const found = await localDb.expenses.get(expenseId);
+      return found ?? null;
+    },
     [expenseId]
   );
 
@@ -82,6 +86,8 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     logCount: number;
     isArchived: boolean;
   } | null>(null);
+  const [hasFetchedServer, setHasFetchedServer] = useState(false);
+  const [isNotFound, setIsNotFound] = useState(false);
 
   const [activeReceiptUrl, setActiveReceiptUrl] = useState<string | null>(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("All");
@@ -153,6 +159,7 @@ export default function ExpenseDetailPage({ params }: PageProps) {
       if (expRes.ok) {
         const { data } = await expRes.json();
         setServerExpense(data);
+        setIsNotFound(false);
         // Sync into Dexie cache
         await localDb.expenses.put({
           id: data.id,
@@ -167,6 +174,8 @@ export default function ExpenseDetailPage({ params }: PageProps) {
           updatedAt: data.updatedAt,
           syncStatus: "synced",
         });
+      } else if (expRes.status === 404 || expRes.status === 403) {
+        setIsNotFound(true);
       }
 
       if (logsRes.ok) {
@@ -195,6 +204,8 @@ export default function ExpenseDetailPage({ params }: PageProps) {
       }
     } catch (err) {
       console.warn("Background SWR refresh error:", err);
+    } finally {
+      setHasFetchedServer(true);
     }
   }, [orgId, expenseId]);
 
@@ -432,6 +443,68 @@ export default function ExpenseDetailPage({ params }: PageProps) {
     setActiveExpenseId(expenseId);
     setLogType("out");
     setAddLogOpen(true);
+  }
+
+  // Tri-state loading: show skeleton while Dexie & initial server fetch are resolving
+  const isPageLoading = !expense && !hasFetchedServer;
+  const isLogsLoading =
+    cachedLogs === undefined || (rawLogs.length === 0 && !hasFetchedServer);
+
+  if (isPageLoading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-canvas pb-28">
+        <header className="sticky top-0 z-40 bg-surface border-b border-border-subtle px-4 py-3">
+          <div className="max-w-xl mx-auto flex items-center justify-between animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-slate-200/70" />
+              <div className="h-5 w-36 bg-slate-200/70 rounded-md" />
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 rounded-full bg-slate-200/70" />
+              <div className="w-10 h-10 rounded-full bg-slate-200/70" />
+            </div>
+          </div>
+        </header>
+        <main className="max-w-xl mx-auto w-full px-4 pt-5 flex flex-col gap-5 flex-1 animate-pulse">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="h-24 rounded-2xl bg-blue-500/20" />
+            <div className="h-24 rounded-2xl bg-rose-500/20" />
+          </div>
+          <div className="h-16 rounded-2xl bg-surface border border-border-subtle" />
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div
+                key={i}
+                className="h-16 rounded-2xl bg-surface border border-border-subtle/50"
+              />
+            ))}
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  if (hasFetchedServer && !expense && isNotFound) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-canvas text-center gap-4">
+        <div className="w-16 h-16 rounded-3xl bg-primary-light border border-primary-border flex items-center justify-center text-primary shadow-sm">
+          <Info size={30} />
+        </div>
+        <h1 className="text-xl font-bold text-txt-main tracking-tight">
+          Book Not Found
+        </h1>
+        <p className="text-xs text-txt-secondary max-w-xs">
+          This ledger book does not exist, has been deleted, or you do not have access to it.
+        </p>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary hover:bg-primary-hover text-xs font-semibold text-white shadow-sm transition-all"
+        >
+          <ArrowLeft size={16} />
+          <span>Back to Dashboard</span>
+        </Link>
+      </div>
+    );
   }
 
   return (
@@ -761,7 +834,25 @@ export default function ExpenseDetailPage({ params }: PageProps) {
           </div>
 
           {/* Transaction List */}
-          {paginatedLogs.length === 0 ? (
+          {isLogsLoading ? (
+            <div className="flex flex-col gap-1.5 animate-pulse">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center justify-between p-3.5 bg-surface rounded-2xl border border-border-subtle/50 shadow-xs"
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-slate-200/70 shrink-0" />
+                    <div className="flex flex-col gap-1.5 flex-1">
+                      <div className="h-4 w-32 bg-slate-200/70 rounded-md" />
+                      <div className="h-3 w-20 bg-slate-100 rounded-md" />
+                    </div>
+                  </div>
+                  <div className="h-4 w-16 bg-slate-200/70 rounded-md" />
+                </div>
+              ))}
+            </div>
+          ) : paginatedLogs.length === 0 ? (
             <div className="p-8 text-center bg-surface border border-dashed border-border-default rounded-3xl text-xs text-txt-muted shadow-sm">
               {rawLogs.length === 0
                 ? "No transactions yet. Click \"+ Cash In\" or \"- Cash Out\" below."

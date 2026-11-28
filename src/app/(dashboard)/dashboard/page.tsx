@@ -20,9 +20,11 @@ import { BookOpen, Plus, TrendingDown, TrendingUp } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const { activeOrg, setOrgSwitcherOpen, isOrgsLoading } = useAppStore();
+  const { activeOrg, setOrgSwitcherOpen, isOrgsLoading, hasHydrated } = useAppStore();
   const [mounted, setMounted] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [syncedOrgId, setSyncedOrgId] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   useEffect(() => {
     setMounted(true);
@@ -43,13 +45,25 @@ export default function DashboardPage() {
     [activeOrg?.id]
   );
 
-  const isBooksLoading = localExpenses === undefined;
-
   // 2. Fetch server updates & delta sync
   const loadData = useCallback(async () => {
     if (!activeOrg) return;
-    performDeltaSync(activeOrg.id);
+    setIsSyncing(true);
+    try {
+      await performDeltaSync(activeOrg.id);
+    } finally {
+      setSyncedOrgId(activeOrg.id);
+      setIsSyncing(false);
+    }
   }, [activeOrg]);
+
+  const isWaitingForInitialSync =
+    Boolean(activeOrg) &&
+    localExpenses !== undefined &&
+    localExpenses.length === 0 &&
+    (isSyncing || syncedOrgId !== activeOrg?.id);
+
+  const isBooksLoading = localExpenses === undefined || isWaitingForInitialSync;
 
   useEffect(() => {
     loadData();
@@ -177,7 +191,7 @@ export default function DashboardPage() {
   const currency = activeOrg?.currency || "BDT";
 
   // Loading skeleton during hydration or while initial organization is loading
-  if (!mounted || (isOrgsLoading && !activeOrg)) {
+  if (!mounted || !hasHydrated || (isOrgsLoading && !activeOrg)) {
     return (
       <div className="min-h-screen flex flex-col bg-canvas pb-24">
         <AppHeader />

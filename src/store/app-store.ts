@@ -18,9 +18,11 @@ type AppState = {
   updateOrgInStore: (updated: Partial<OrgContext> & { id: string }) => void;
   removeOrgFromStore: (id: string) => void;
 
-  // Loading state for organizations
+  // Loading & hydration state for organizations
   isOrgsLoading: boolean;
   setIsOrgsLoading: (loading: boolean) => void;
+  hasHydrated: boolean;
+  setHasHydrated: (hydrated: boolean) => void;
 
   // Date filter (YYYY-MM-DD or empty for all)
   selectedDate: string;
@@ -91,6 +93,8 @@ export const useAppStore = create<AppState>()(
 
       isOrgsLoading: true,
       setIsOrgsLoading: (loading) => set({ isOrgsLoading: loading }),
+      hasHydrated: false,
+      setHasHydrated: (hydrated) => set({ hasHydrated: hydrated }),
 
       selectedDate: "",
       setSelectedDate: (date) => set({ selectedDate: date }),
@@ -122,6 +126,9 @@ export const useAppStore = create<AppState>()(
         activeOrg: state.activeOrg,
         orgs: state.orgs,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     }
   )
 );
